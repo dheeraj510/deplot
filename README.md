@@ -22,6 +22,8 @@ This code describes a single page, at the location `/`, that consists of a layou
 
 It is possible to use more than one source to render a page, or to create multiple pages from multiple sources (the `example` folder contains a simple blog built with `deplot` that uses this feature for its front page and `posts/` folder).
 
+The `deplot.rb` source has a few comments on the main methods, if you want to find out more about the way `deplot` works. Read it conveniently in your browser with [rocco][rocco].
+
 Install
 -------
 
@@ -29,7 +31,7 @@ To use `deplot`, your plot file needs to include the `deplot.rb` file:
 
 	require 'deplot.rb'
 	
-In addition, the directory in which your plot is executed needs to have the folders 'content' and 'templates'. The example is a good starting point for any project; there are still a lot of bugs that will possibly cause `deplot` to crash when in another setup.
+In addition, the directory in which your plot is executed must have the folders 'content' and 'templates'. The example is a good starting point for any project; there are still a lot of bugs that will possibly cause `deplot` to crash when in another setup.
 
 Issues and possible future features
 -----------------------------------
@@ -44,3 +46,4 @@ License
 See LICENSE file.
 
 [tilt]: https://github.com/rtomayko/tilt
+[rocco]: https://github.com/rtomayko/rocco
