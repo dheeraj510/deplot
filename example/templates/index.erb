@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title><%= @title %></title>
+	<link rel="stylesheet" href="<% depth.times{ %>../<%}%>style.css" />
+</head>
+<body>
+<div id="header">
+	<h1>deplot example</h1>
+</div>
+<div id="menu">
+	<%	menus.each do |number, content| %>
+	<a href="<% depth.times{ %>../<%}%><%= content[1] %>"<%= (path == content[1]) ? ' id="this"' : "" %>><%= content[0] %></a>
+	<%	end %>
+</div>
+<div id="wrapper">
+<% sources.each do |source| %>
+	<div id="item">
+		<%= source %>
+	</div>
+<% end %>
+</div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title></title>
+	<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<div id="header">
+	<h1>deplot example</h1>
+</div>
+<div id="menu">
+	<a href="../index.html">Blog</a>
+	<a href="../about.html">About</a>
+</div>
+<div id="wrapper">
+	<h3>Blog post no. 3</h3>
+
+<p>Frank (as of 1.0) has support for saving &quot;templates&quot; in <code>~/.frank_templates</code>. This is very handy if find yourself wanting a custom starting point. All you have to do to use the feature is create a <code>~/.frank_templates</code> folder and start putting templates in it.</p>
+
+<p>Once you have a few templates saved, when you run <code>frank new &lt;project_path&gt;</code> you&#39;ll be presented with a list of templates to choose from as the starting point for the project.</p>
+
+<p>Frank was designed to make controllers unnecessary. But, sometimes it&#39;s nice to have
+variables in your templates / layouts. This is particularly handy if you want to set the page
+title (in the layout) according to the view. This is simple, now, with meta data.</p>
+
+<p>Meta fields go at the top of any view, and are written in [YAML][13]. To mark the end
+of the meta section, place the meta delimeter, <code>META---</code>, on a blank line. You can
+use as many hyphens as you&#39;d like (as long as there are 3).</p>
+
+<p>Meta fields are then available as local variables to all templating languages that
+support them--in the view &amp; layout.</p>
+
+</div>
+</body>
+</html>

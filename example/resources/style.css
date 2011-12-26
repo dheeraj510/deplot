@@ -1,0 +1,36 @@
+
+body {
+	font-family:	"Helvetica", serif;
+}
+
+#header {
+	width:			940px;
+	margin:			40px auto 10px auto;
+	padding:		0px 0px 10px 0px;
+	border-bottom:	1px solid #AAA;
+}
+
+#menu {
+	width:			940px;
+	height:			28px;
+	margin:			0px auto 30px auto;
+	border-bottom:	1px solid #CCC;
+}
+#menu a {
+	padding:			6px 8px;
+	background-color:	#EEE;
+	color:				#000;
+}
+#menu a:hover, a#this {
+	background-color:	#222;
+	color:				#FFF;
+}
+
+#wrapper {
+	width:			940px;
+	margin:			0px auto 0px auto;
+}
+
+h3 {
+	margin:			30px 0px 10px 8px;
+}
