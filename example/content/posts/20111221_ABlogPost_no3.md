@@ -1,16 +1,5 @@
 ### Blog post no. 3
 
-Frank (as of 1.0) has support for saving "templates" in `~/.frank_templates`. This is very handy if find yourself wanting a custom starting point. All you have to do to use the feature is create a `~/.frank_templates` folder and start putting templates in it.
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. 
 
-Once you have a few templates saved, when you run `frank new <project_path>` you'll be presented with a list of templates to choose from as the starting point for the project.
-
-Frank was designed to make controllers unnecessary. But, sometimes it's nice to have
-variables in your templates / layouts. This is particularly handy if you want to set the page
-title (in the layout) according to the view. This is simple, now, with meta data.
-
-Meta fields go at the top of any view, and are written in [YAML][13]. To mark the end
-of the meta section, place the meta delimeter, `META---`, on a blank line. You can
-use as many hyphens as you'd like (as long as there are 3).
-
-Meta fields are then available as local variables to all templating languages that
-support them--in the view & layout.
+Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. 
