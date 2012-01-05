@@ -195,7 +195,7 @@ class Deplot
 						error_if_normal_file file
 						next
 					end
-					sources.push file_content.render(Object.new, {})
+					sources.push({:name => file, :content => file_content.render(Object.new, {})})
 				end
 			end
 			Dir.chdir "output" do
@@ -205,7 +205,7 @@ class Deplot
 				if @layout.nil?
 					add_write_task location do
 						# A layout should really be specified for this case.
-						sources.join("<br />")
+						sources.map{ |source| source[:content] }.join("<br />")
 					end
 				else
 					layout = @layout

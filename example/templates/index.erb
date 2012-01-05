@@ -16,8 +16,9 @@
 </div>
 <div id="wrapper">
 <% sources.each do |source| %>
-	<div id="item">
-		<%= source %>
+	<div class="item">
+		<%= source[:content] %>
+		<a href="post/<%= source[:name].sub("md", "html") %>">&raquo; read more</a>
 	</div>
 <% end %>
 </div>
