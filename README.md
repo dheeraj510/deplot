@@ -1,7 +1,7 @@
 deplot
 ======
 
-Deplot is a ruby DSL to simply create and manage a static web site.
+Deplot is a ruby DSL to easily create and manage a static web site.
 
 Syntax
 ------
