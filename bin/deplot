@@ -106,27 +106,43 @@ class Deplot < Thor
     FileUtils.mkdir project_name
     Dir.chdir project_name do
       # Content directory
-      puts "  Making directory 'content'..."
-      FileUtils.mkdir "content"
+      puts "  Making directory '"+$content_dir+"'..."
+      FileUtils.mkdir $content_dir
       # Assets directory
       puts "  Making directory '"+$assets_dir+"'..."
       FileUtils.mkdir $assets_dir
       #   Basic Layout
       Dir.chdir $assets_dir do
         File.open "layout.erb", "w" do |file|
-          file.puts "<html>"
-          file.puts "<head>"
-          file.puts "	<title>Deplot Project</title>"
-          file.puts "</head>"
-          file.puts "<body>"
-          file.puts "	<p>Test</p>"
-          file.puts "</body>"
-          file.puts "</html>"
+          file.write <<-EOF
+<html>
+<head>
+	<title>Deplot Project</title>
+</head>
+<body>
+	<%= yield %>
+</body>
+</html>
+EOF
         end
       end
       # Deplotfile
       puts "  Creating Deplotfile..."
       File.open "Deplotfile", "w" do |file|
+        file.write <<-EOF
+path '/' do
+  render "index.markdown"
+end
+path '/about/' do
+  render "about.markdown"
+end
+
+publish
+EOF
+      end
+      # Guardfile
+      puts "  Creating Guardfile..."
+      File.open "Guardfile", "w" do |file|
         file.write <<-EOF
 # CoffeeScript
 guard :coffeescript, :input => 'assets', :output => '.'
@@ -134,16 +150,33 @@ guard :coffeescript, :input => 'assets', :output => '.'
 # CSS <- LESS, SASS
 guard :sass, :input => 'assets', :output => '.'
 guard :less, :output => '.' do
-  watch(/^assets\/(.+\.less)$/)
+  watch(/^assets\\/(.+\.less)$/)
 end
 
 # Invoke deplot
 guard :shell do
-  watch(/(assets|content)\/(.*)/) do |m|
+  watch(/(assets|content)\\/(.*)/) do |m|
      `echo ""; echo "File '"+m[1]+"' changed."; deplot make`
    end
 end
 EOF
+      end
+      # Example content
+      Dir.chdir $content_dir do
+        File.open "index.markdown", "w" do |file|
+          file.write <<-EOF
+# Index page
+
+Just some example text
+EOF
+        end
+        File.open "about.markdown", "w" do |file|
+          file.write <<-EOF
+# About page
+
+About this site
+EOF
+        end
       end
     end  
     puts "Finished creating '"+project_name+"'- ready to build your site!"
