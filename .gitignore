@@ -1,4 +1,2 @@
-deplot.html
-README.html
-.DS_STORE
-*/.DS_STORE
+*.gem
+Gemfile.lock

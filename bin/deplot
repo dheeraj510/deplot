@@ -1,0 +1,163 @@
+#!/usr/bin/env ruby
+
+require 'thor'
+require 'fileutils'
+require 'tilt'
+
+# Deplot DSL
+
+$assets_dir = "assets"
+$content_dir = "content"
+
+$tasks = []
+$current_source = ""
+$layout = ""
+def layout file
+  $layout = file
+end
+def render file
+  $current_source = file
+end
+def path path, &block
+  # reset
+  $current_source = ""
+  $layout = "layout.erb"
+  
+  # set
+  block.call
+  
+  # remember
+  $tasks << ["render-single", path, $current_source]
+end
+def publish
+  puts "Publishing site..."
+  $tasks.each do |task|
+    action, path, source = task
+    content = ""
+    
+    # Destination
+    destination_dir = File.dirname path
+    destination_base = File.basename path
+    if /\/$/ =~ path
+      destination_dir = path
+      destination_base = "index.html"
+    end
+    
+    puts "Rendering path '"+destination_dir+destination_base+"'"
+    # make path
+    FileUtils.mkdir_p "."+destination_dir
+    unless File.directory? "."+destination_dir
+      puts "  Path '"+path+"' could not be created. Skipping..."
+      next
+    end
+    
+    # Read source
+    Dir.chdir $content_dir do
+      unless File.exist? source
+        puts "  Source file could not be found. Skipping..."
+        next
+      end
+      content = File.read source
+    end
+    puts "  Read source file."
+    
+    # Create tilt instances
+    layout_tilt = nil
+    Dir.chdir $assets_dir do
+      layout_tilt = Tilt.new($layout)
+    end
+    if layout_tilt.nil?
+      puts "  Layout could not be found or rendered. Skipping..."
+      next
+    end
+    source_tilt = nil
+    Dir.chdir $content_dir do
+      source_tilt = Tilt.new(source)
+    end
+    if source_tilt.nil?
+       puts "  Source file could not be rendered. Skipping..."
+       next
+    end
+    puts "  Created tilt instances."
+    
+    # Render and write
+    Dir.chdir "."+destination_dir do
+      File.open destination_base, "w" do |file|
+        file.puts layout_tilt.render(Object.new, {}){
+          source_tilt.render(Object.new, {})
+        }
+      end
+    end
+    puts "  Wrote to file."
+  end
+end
+
+# Thor: Deplot CLI
+
+class Deplot < Thor
+  
+  desc "new <project_name>", "Create a new deplot project"
+  def new(project_name)
+    if File.exist? project_name
+      puts "Directory '"+project_name+"' exists already. Exiting..."
+      return
+    end
+    puts "Creating project folder..."
+    FileUtils.mkdir project_name
+    Dir.chdir project_name do
+      # Content directory
+      puts "  Making directory 'content'..."
+      FileUtils.mkdir "content"
+      # Assets directory
+      puts "  Making directory '"+$assets_dir+"'..."
+      FileUtils.mkdir $assets_dir
+      #   Basic Layout
+      Dir.chdir $assets_dir do
+        File.open "layout.erb", "w" do |file|
+          file.puts "<html>"
+          file.puts "<head>"
+          file.puts "	<title>Deplot Project</title>"
+          file.puts "</head>"
+          file.puts "<body>"
+          file.puts "	<p>Test</p>"
+          file.puts "</body>"
+          file.puts "</html>"
+        end
+      end
+      # Deplotfile
+      puts "  Creating Deplotfile..."
+      File.open "Deplotfile", "w" do |file|
+        file.write <<-EOF
+# CoffeeScript
+guard :coffeescript, :input => 'assets', :output => '.'
+
+# CSS <- LESS, SASS
+guard :sass, :input => 'assets', :output => '.'
+guard :less, :output => '.' do
+  watch(/^assets\/(.+\.less)$/)
+end
+
+# Invoke deplot
+guard :shell do
+  watch(/(assets|content)\/(.*)/) do |m|
+     `echo ""; echo "File '"+m[1]+"' changed."; deplot make`
+   end
+end
+EOF
+      end
+    end  
+    puts "Finished creating '"+project_name+"'- ready to build your site!"
+  end
+  
+  desc "make", "Run deplot and build your project"
+  def make()
+    puts "Making project..."
+    unless File.exist? "Deplotfile"
+      puts "Deplotfile not found. Exiting..."
+      return
+    end
+    $LOAD_PATH.unshift(Dir.pwd)
+    load "Deplotfile"
+  end
+end
+Deplot.start
