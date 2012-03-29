@@ -149,7 +149,7 @@ end
 # Invoke deplot
 guard :shell do
 watch(/(assets|content)\\/(.*)/) do |m|
-   `echo ""; echo "File '#{m[2]}' changed."; deplot make`
+   `echo ""; echo "File '\#{m[2]}' changed."; deplot make`
  end
 end
 EOF
