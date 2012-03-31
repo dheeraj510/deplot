@@ -27,6 +27,7 @@ def render_all path
 end
 def path path, &block
   # reset
+  $render_type = ""
   $current_source = ""
   $layout = "layout.erb"
   
@@ -36,15 +37,15 @@ def path path, &block
   # remember
   if $render_type == "render-all"
     $render_type = (/\#/ =~ path) ? "render-all" : "render-all-one-file"
-    $tasks << [$render_type, path, $current_source]
+    $tasks << [$render_type, path, $current_source, $layout]
   else
-    $tasks << [$render_type, path, $current_source]
+    $tasks << [$render_type, path, $current_source, $layout]
   end
 end
 def publish
   puts "Publishing site..."
   $tasks.each do |task|
-    action, path, source = task
+    action, path, source, $layout = task
     content = ""
     if action == "render-single"
       
@@ -111,7 +112,7 @@ def publish
       destination_base = File.basename path
       if /\/$/ =~ path
         destination_dir = path
-        destination_base = "#"
+        destination_base = "index.html"
       end
     
       puts "Rendering path/s '"+destination_dir+"/...'"
@@ -125,19 +126,20 @@ def publish
       # Read source
       Dir.chdir $content_dir do
         Dir.chdir source do
+          # Create layout tilt instance
+          layout_tilt = nil
+          Dir.chdir $assets_dir do
+            layout_tilt = Tilt.new($layout)
+          end
+          if layout_tilt.nil?
+            puts "  Layout could not be found or rendered. Skipping..."
+            next
+          end
           Dir.glob("*").each do |content_file|
             #content = File.read content_file
             puts "  Read source file."
             
             # Create tilt instances
-            layout_tilt = nil
-            Dir.chdir $assets_dir do
-              layout_tilt = Tilt.new($layout)
-            end
-            if layout_tilt.nil?
-              puts "  Layout could not be found or rendered. Skipping..."
-              next
-            end
             source_tilt = nil
             source_tilt = Tilt.new(content_file)
             if source_tilt.nil?
@@ -159,7 +161,63 @@ def publish
           end
         end
       end
-    end
+    elsif action == "render-all-one-file"
+      puts "render-all-one-file"
+      
+      ## R E N D E R   A L L   O N E   F I L E
+      # Destination
+      destination_dir = File.dirname path
+      destination_base = File.basename path
+      if /\/$/ =~ path
+        destination_dir = path
+        destination_base = "#"
+      end
+    
+      puts "Rendering path/s '"+destination_dir+"/...'"
+      # make path
+      FileUtils.mkdir_p "."+destination_dir
+      unless File.directory? "."+destination_dir
+        puts "  Path '"+path+"' could not be created. Skipping..."
+        next
+      end
+      
+      sources_rendered = []
+      # Read source/s
+      Dir.chdir $content_dir do
+        Dir.chdir source do
+          Dir.glob("*").each do |content_file|
+            #content = File.read content_file
+            puts "  Read source file."
+            
+            # Create tilt instance
+            source_tilt = nil
+            source_tilt = Tilt.new(content_file)
+            if source_tilt.nil?
+               puts "  Source file could not be rendered. Skipping..."
+               next
+            end
+            puts "  Created tilt instance."
+            sources_rendered << source_tilt.render(Object.new, {})
+          end
+        end
+      end
+      
+      # Create layout tilt instance
+      layout_tilt = nil
+      Dir.chdir $assets_dir do
+        layout_tilt = Tilt.new($layout)
+      end
+      if layout_tilt.nil?
+        puts "  Layout could not be found or rendered. Skipping..."
+        next
+      end
+      # Render and write
+      Dir.chdir "."+destination_dir do
+        File.open destination_base, "w" do |file|
+          file.puts layout_tilt.render(Object.new, {:items => sources_rendered})
+        end
+      end
+    end # End of action switching
   end
 end
 
