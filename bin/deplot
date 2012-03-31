@@ -6,17 +6,24 @@ require 'tilt'
 
 # Deplot DSL
 
-$assets_dir = "assets"
-$content_dir = "content"
+$assets_dir = Dir.pwd+"/assets"
+$content_dir = Dir.pwd+"/content"
+$root_dir = Dir.pwd
 
 $tasks = []
+$render_type = ""
 $current_source = ""
 $layout = ""
 def layout file
   $layout = file
 end
 def render file
+  $render_type = "render-single"
   $current_source = file
+end
+def render_all path
+  $render_type = "render-all"
+  $current_source = path
 end
 def path path, &block
   # reset
@@ -27,68 +34,127 @@ def path path, &block
   block.call
   
   # remember
-  $tasks << ["render-single", path, $current_source]
+  $tasks << [$render_type, path, $current_source]
 end
 def publish
   puts "Publishing site..."
   $tasks.each do |task|
     action, path, source = task
     content = ""
+    if action == "render-single"
+      
+      ## R E N D E R   S I N G L E
+      # Destination
+      destination_dir = File.dirname path
+      destination_base = File.basename path
+      if /\/$/ =~ path
+        destination_dir = path
+        destination_base = "index.html"
+      end
     
-    # Destination
-    destination_dir = File.dirname path
-    destination_base = File.basename path
-    if /\/$/ =~ path
-      destination_dir = path
-      destination_base = "index.html"
-    end
-    
-    puts "Rendering path '"+destination_dir+destination_base+"'"
-    # make path
-    FileUtils.mkdir_p "."+destination_dir
-    unless File.directory? "."+destination_dir
-      puts "  Path '"+path+"' could not be created. Skipping..."
-      next
-    end
-    
-    # Read source
-    Dir.chdir $content_dir do
-      unless File.exist? source
-        puts "  Source file could not be found. Skipping..."
+      puts "Rendering path '"+destination_dir+destination_base+"'"
+      # make path
+      FileUtils.mkdir_p "."+destination_dir
+      unless File.directory? "."+destination_dir
+        puts "  Path '"+path+"' could not be created. Skipping..."
         next
       end
-      content = File.read source
-    end
-    puts "  Read source file."
     
-    # Create tilt instances
-    layout_tilt = nil
-    Dir.chdir $assets_dir do
-      layout_tilt = Tilt.new($layout)
-    end
-    if layout_tilt.nil?
-      puts "  Layout could not be found or rendered. Skipping..."
-      next
-    end
-    source_tilt = nil
-    Dir.chdir $content_dir do
-      source_tilt = Tilt.new(source)
-    end
-    if source_tilt.nil?
-       puts "  Source file could not be rendered. Skipping..."
-       next
-    end
-    puts "  Created tilt instances."
+      # Read source
+      Dir.chdir $content_dir do
+        unless File.exist? source
+          puts "  Source file could not be found. Skipping..."
+          next
+        end
+        content = File.read source
+      end
+      puts "  Read source file."
     
-    # Render and write
-    Dir.chdir "."+destination_dir do
-      File.open destination_base, "w" do |file|
-        file.puts layout_tilt.render(Object.new, {}){
-          source_tilt.render(Object.new, {})
-        }
+      # Create tilt instances
+      layout_tilt = nil
+      Dir.chdir $assets_dir do
+        layout_tilt = Tilt.new($layout)
+      end
+      if layout_tilt.nil?
+        puts "  Layout could not be found or rendered. Skipping..."
+        next
+      end
+      source_tilt = nil
+      Dir.chdir $content_dir do
+        source_tilt = Tilt.new(source)
+      end
+      if source_tilt.nil?
+         puts "  Source file could not be rendered. Skipping..."
+         next
+      end
+      puts "  Created tilt instances."
+    
+      # Render and write
+      Dir.chdir "."+destination_dir do
+        File.open destination_base, "w" do |file|
+          file.puts layout_tilt.render(Object.new, {}){
+            source_tilt.render(Object.new, {})
+          }
+        end
+      end
+      puts "  Wrote to file."
+    elsif action == "render-all"
+      
+      ## R E N D E R   A L L
+      # Destination
+      destination_dir = File.dirname path
+      destination_base = File.basename path
+      if /\/$/ =~ path
+        destination_dir = path
+        destination_base = "#"
+      end
+    
+      puts "Rendering path/s '"+destination_dir+"/...'"
+      # make path
+      FileUtils.mkdir_p "."+destination_dir
+      unless File.directory? "."+destination_dir
+        puts "  Path '"+path+"' could not be created. Skipping..."
+        next
+      end
+    
+      # Read source
+      Dir.chdir $content_dir do
+        Dir.chdir source do
+          Dir.glob("*").each do |content_file|
+            #content = File.read content_file
+            puts "  Read source file."
+            
+            # Create tilt instances
+            layout_tilt = nil
+            Dir.chdir $assets_dir do
+              layout_tilt = Tilt.new($layout)
+            end
+            if layout_tilt.nil?
+              puts "  Layout could not be found or rendered. Skipping..."
+              next
+            end
+            source_tilt = nil
+            source_tilt = Tilt.new(content_file)
+            if source_tilt.nil?
+               puts "  Source file could not be rendered. Skipping..."
+               next
+            end
+            puts "  Created tilt instances."
+            
+            # Render and write
+            Dir.chdir $root_dir+destination_dir do
+              file_name = File.basename(content_file).gsub(File.extname(content_file), ".html")
+              File.open destination_base.gsub("#", file_name), "w" do |file|
+                file.puts layout_tilt.render(Object.new, {}){
+                  source_tilt.render(Object.new, {})
+                }
+              end
+            end
+            puts "  Wrote to file."
+          end
+        end
       end
     end
-    puts "  Wrote to file."
   end
 end
 
