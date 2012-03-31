@@ -34,7 +34,12 @@ def path path, &block
   block.call
   
   # remember
-  $tasks << [$render_type, path, $current_source]
+  if $render_type == "render-all"
+    $render_type = (/\#/ =~ path) ? "render-all" : "render-all-one-file"
+    $tasks << [$render_type, path, $current_source]
+  else
+    $tasks << [$render_type, path, $current_source]
+  end
 end
 def publish
   puts "Publishing site..."
