@@ -47,6 +47,7 @@ def publish
   $tasks.each do |task|
     action, path, source, $layout = task
     content = ""
+		puts " => action: " + action 
     if action == "render-single"
       
       ## R E N D E R   S I N G L E
@@ -98,8 +99,9 @@ def publish
       # Render and write
       Dir.chdir "."+destination_dir do
         File.open destination_base, "w" do |file|
-          file.puts layout_tilt.render(Object.new, {}){
-            source_tilt.render(Object.new, {})
+					file_name = destination_base
+          file.puts layout_tilt.render(Object.new, {:file_name => file_name}){
+            source_tilt.render(Object.new, {:file_name => file_name})
           }
         end
       end
@@ -151,9 +153,10 @@ def publish
             # Render and write
             Dir.chdir $root_dir+destination_dir do
               file_name = File.basename(content_file).gsub(File.extname(content_file), ".html")
+							puts "  file name: " + file_name
               File.open destination_base.gsub("#", file_name), "w" do |file|
-                file.puts layout_tilt.render(Object.new, {}){
-                  source_tilt.render(Object.new, {})
+                file.puts layout_tilt.render(Object.new, {:file_name => file_name}){
+                  source_tilt.render(Object.new, {:file_name => file_name})
                 }
               end
             end
