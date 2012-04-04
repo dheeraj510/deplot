@@ -256,10 +256,10 @@ EOF
     File.open "Deplotfile", "w" do |file|
       file.write <<-EOF
 path '/' do
-render "index.markdown"
+  render "index.markdown"
 end
 path '/about/' do
-render "about.markdown"
+  render "about.markdown"
 end
 
 publish
