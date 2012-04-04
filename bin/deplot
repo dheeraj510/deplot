@@ -47,7 +47,7 @@ def publish
   $tasks.each do |task|
     action, path, source, $layout = task
     content = ""
-		puts " => action: " + action 
+		
     if action == "render-single"
       
       ## R E N D E R   S I N G L E
