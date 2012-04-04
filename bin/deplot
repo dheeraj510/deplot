@@ -200,7 +200,7 @@ def publish
                next
             end
             puts "  Created tilt instance."
-            sources_rendered << source_tilt.render(Object.new, {})
+            sources_rendered << [content_file, source_tilt.render(Object.new, {})]
           end
         end
       end
