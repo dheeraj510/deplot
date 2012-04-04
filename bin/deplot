@@ -242,12 +242,26 @@ class Deplot < Thor
         file.write <<-EOF
 <html>
 <head>
-<title>Deplot Project</title>
+  <title>Deplot Project</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<%= yield %>
+<div id="wrapper">
+  <%= yield %>
+</div>
 </body>
 </html>
+EOF
+      end
+      File.open "style.less", "w" do |file|
+        file.write <<-EOF
+body {
+  font-family: "Helvetica", sans-serif;
+}
+#wrapper {
+  width: 500px;
+  margin: 0px auto;
+}
 EOF
       end
     end
