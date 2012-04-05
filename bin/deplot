@@ -389,11 +389,20 @@ EOF
 	   	Dir.chdir project_name do
 		    init
 		  end
+			puts "Finished creating '#{project_name}'- ready to build your site!"
 		else
     	`git clone #{git_skeleton} #{project_name}`
-    	`rm -rf #{project_name}/.git`
+			if File.exist? project_name
+    		begin
+					`rm -rf #{project_name}/.git`
+				rescue
+					puts "Unable to delete git references."
+				end
+				puts "Finished creating '#{project_name}' - ready to build your site! (If 'git clone' didn't fail.)"
+			else
+				puts "Git clone failed (see output above)."
+			end
     end
-		puts "Finished creating '"+project_name+"'- ready to build your site!"
   end
   
   desc "make", "Run deplot and build your project"
