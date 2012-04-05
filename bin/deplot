@@ -56,12 +56,24 @@ def path path, &block
     $tasks << [$render_type, path, $current_source, $layout]
   end
 end
+def check_directories?
+	[$assets_dir, $content_dir].each do |dir|
+		unless File.exists?(dir) and File.directory?(dir)
+			return false
+		end
+	end
+	return true
+end
 def publish
   puts "Publishing site..."
   $tasks.each do |task|
     action, path, source, $layout = task
     content = ""
     template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
+		unless check_directories?
+			puts "- ERROR: content or assets directory does't exist. Exiting..."
+			return
+		end
 		
     if action == "render-single"
       
