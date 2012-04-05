@@ -85,7 +85,12 @@ def publish
       # Create tilt instances
       layout_tilt = nil
       Dir.chdir $assets_dir do
-        layout_tilt = Tilt.new($layout)
+				begin
+	        layout_tilt = Tilt.new($layout)
+				rescue Exception => e
+					puts "- ERROR creating tilt instance (possibly missing layout file)."
+					layout_tilt = nil
+				end
       end
       if layout_tilt.nil?
         puts "  Layout could not be found or rendered. Skipping..."
@@ -93,7 +98,12 @@ def publish
       end
       source_tilt = nil
       Dir.chdir $content_dir do
-        source_tilt = Tilt.new(source)
+				begin
+	        source_tilt = Tilt.new(source)
+				rescue Exception => e
+					puts "- ERROR creating tilt instance (possibly missing source file)."
+					source_tilt = nil
+				end
       end
       if source_tilt.nil?
          puts "  Source file could not be rendered. Skipping..."
@@ -135,7 +145,12 @@ def publish
           # Create layout tilt instance
           layout_tilt = nil
           Dir.chdir $assets_dir do
-            layout_tilt = Tilt.new($layout)
+						begin
+			        layout_tilt = Tilt.new($layout)
+						rescue Exception => e
+							puts "- ERROR creating tilt instance (possibly missing layout file)."
+							layout_tilt = nil
+						end
           end
           if layout_tilt.nil?
             puts "  Layout could not be found or rendered. Skipping..."
@@ -147,7 +162,12 @@ def publish
         		
             # Create tilt instances
             source_tilt = nil
-            source_tilt = Tilt.new(content_file)
+						begin
+            	source_tilt = Tilt.new(content_file)
+						rescue Exception => e
+							puts "- ERROR creating tilt instance (possibly missing source file)."
+							source_tilt = nil
+						end
             if source_tilt.nil?
                puts "  Source file could not be rendered. Skipping..."
                next
@@ -203,7 +223,12 @@ def publish
             
             # Create tilt instance
             source_tilt = nil
-            source_tilt = Tilt.new(content_file)
+						begin
+            	source_tilt = Tilt.new(content_file)
+						rescue Exception => e
+							puts "- ERROR creating tilt instance (possibly missing source file)."
+							source_tilt = nil
+						end
             if source_tilt.nil?
                puts "  Source file could not be rendered. Skipping..."
                next
@@ -216,7 +241,12 @@ def publish
       # Create layout tilt instance
       layout_tilt = nil
       Dir.chdir $assets_dir do
-        layout_tilt = Tilt.new($layout)
+				begin
+	        layout_tilt = Tilt.new($layout)
+				rescue Exception => e
+					puts "- ERROR creating tilt instance (possibly missing layout file)."
+					layout_tilt = nil
+				end
       end
       if layout_tilt.nil?
         puts "  Layout could not be found or rendered. Skipping..."
