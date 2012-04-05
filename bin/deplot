@@ -64,7 +64,7 @@ def publish
 			template_arguments.merge! :source => source
 			template_arguments.merge! :depth => (destination_dir.count "/")
     
-      puts "Rendering path '"+destination_dir+destination_base+"'"
+      puts "Rendering path '#{destination_dir}/#{destination_base}'"
       # make path
       FileUtils.mkdir_p "."+destination_dir
       unless File.directory? "."+destination_dir
@@ -125,7 +125,6 @@ def publish
       # make path
       FileUtils.mkdir_p "."+destination_dir
       unless File.directory? "."+destination_dir
-        puts "  Path '"+path+"' could not be created. Skipping..."
         next
       end
     
@@ -143,7 +142,7 @@ def publish
             next
           end
           Dir.glob("*").each do |content_file|
-            puts "  Read source file."
+            puts "  Read source file #{source}/#{content_file}"
         		template_arguments.merge! :source => "#{source}/#{content_file}"
         		
             # Create tilt instances
@@ -153,7 +152,6 @@ def publish
                puts "  Source file could not be rendered. Skipping..."
                next
             end
-            puts "  Created tilt instance."
             
             # Render and write
             Dir.chdir $root_dir+destination_dir do
@@ -161,14 +159,13 @@ def publish
               template_arguments.merge! :path => "#{destination_dir}/#{file_name}"
           		template_arguments.merge! :file_name => file_name
           		template_arguments.merge! :depth => (destination_dir.count "/")
-							puts "  file name: " + file_name
               File.open destination_base.gsub("#", file_name), "w" do |file|
                 file.puts layout_tilt.render(Object.new, template_arguments){
                   source_tilt.render(Object.new, template_arguments)
                 }
               end
+		          puts "  Wrote to file: " + file_name
             end
-            puts "  Wrote to file."
           end
         end
       end
@@ -187,7 +184,7 @@ def publish
 			template_arguments.merge! :file_name => destination_base
 			template_arguments.merge! :depth => (destination_dir.count "/")
     
-      puts "Rendering path/s '"+destination_dir+"/...'"
+      puts "Rendering path '#{destination_dir}/#{destination_base}'"
       # make path
       FileUtils.mkdir_p "."+destination_dir
       unless File.directory? "."+destination_dir
@@ -201,7 +198,7 @@ def publish
         Dir.chdir source do
           Dir.glob("*").each do |content_file|
             #content = File.read content_file
-            puts "  Read source file."
+            puts "  Read source file #{source}/#{content_file}"
       			template_arguments.merge! :source => "#{source}#{content_file}"
             
             # Create tilt instance
@@ -211,7 +208,6 @@ def publish
                puts "  Source file could not be rendered. Skipping..."
                next
             end
-            puts "  Created tilt instance."
             sources_rendered << {:content => source_tilt.render(Object.new, template_arguments)}.merge(template_arguments)
           end
         end
@@ -230,8 +226,9 @@ def publish
       Dir.chdir "."+destination_dir do
         File.open destination_base, "w" do |file|
           file.puts layout_tilt.render(Object.new, {:items => sources_rendered}.merge(template_arguments))
-        end
-      end
+        end	
+      end	
+      puts "  Wrote to file."
     end # End of action switching
   end
 end
