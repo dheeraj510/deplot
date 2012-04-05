@@ -361,7 +361,7 @@ EOF
   desc "new <project_name>", "Create a new deplot project"
   def new(project_name)
     if File.exist? project_name
-      puts "Directory '"+project_name+"' exists already. Exiting..."
+      puts "Directory '"+project_name+"' already exists. Exiting..."
       return
     end
     puts "Creating project folder..."
