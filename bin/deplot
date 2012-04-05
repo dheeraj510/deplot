@@ -14,6 +14,12 @@ $tasks = []
 $render_type = ""
 $current_source = ""
 $layout = ""
+def assets_dir dir
+	$assets_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
+end
+def content_dir dir
+	$content_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
+end
 def layout file
   $layout = file
 end
