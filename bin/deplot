@@ -15,6 +15,7 @@ $tasks = []
 $render_type = ""
 $current_source = ""
 $layout = ""
+$options = {}
 def assets_dir dir
 	$assets_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
 end
@@ -45,6 +46,7 @@ def path path, &block
   $render_type = ""
   $current_source = ""
   $layout = "layout.erb"
+	$options = {}
   
   # set
   block.call
@@ -52,10 +54,13 @@ def path path, &block
   # remember
   if $render_type == "render-all"
     $render_type = (/\#/ =~ path) ? "render-all" : "render-all-one-file"
-    $tasks << [$render_type, path, $current_source, $layout]
+    $tasks << [$render_type, path, $current_source, $layout, $options]
   else
-    $tasks << [$render_type, path, $current_source, $layout]
+    $tasks << [$render_type, path, $current_source, $layout, $options]
   end
+end
+def reverse_order
+	$options[:reverse_order] = true
 end
 def partial name, options = {}
 	begin
@@ -89,7 +94,7 @@ end
 def publish
   puts "Publishing site..."
   $tasks.each do |task|
-    action, path, source, $layout = task
+    action, path, source, $layout, options = task
     content = ""
     $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
 		unless check_directories?
@@ -272,7 +277,11 @@ def publish
 					source, paths = source
 				end
         Dir.chdir source do
-          (paths == [] ? Dir.glob("*") : paths).each do |content_file|
+          paths = (paths == [] ? Dir.glob("*") : paths)
+					if options.has_key? :reverse_order and options[:reverse_order] == true
+						paths.reverse!
+					end
+					paths.each do |content_file|
             #content = File.read content_file
             puts "  Read source file #{source}/#{content_file}"
       			$template_arguments.merge! :source => "#{source}#{content_file}"
