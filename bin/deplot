@@ -21,6 +21,14 @@ def render file
   $render_type = "render-single"
   $current_source = file
 end
+def render_each base = "", paths = []
+  $render_type = "render-all"
+  unless base.is_a? Array
+		$current_source = [base, paths]
+	else
+		$current_source = ["./", base]
+	end
+end
 def render_all path
   $render_type = "render-all"
   $current_source = path
@@ -140,6 +148,10 @@ def publish
     
       # Read source
       Dir.chdir $content_dir do
+				paths = []
+				if source.is_a? Array
+					source, paths = source
+				end
         source.gsub!(/\/$/, "")
         Dir.chdir source do
           # Create layout tilt instance
@@ -156,7 +168,7 @@ def publish
             puts "  Layout could not be found or rendered. Skipping..."
             next
           end
-          Dir.glob("*").each do |content_file|
+          (paths == [] ? Dir.glob("*") : paths).each do |content_file|
             puts "  Read source file #{source}/#{content_file}"
         		template_arguments.merge! :source => "#{source}/#{content_file}"
         		
