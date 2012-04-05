@@ -254,12 +254,12 @@ class Deplot < Thor
         file.write <<-EOF
 <html>
 <head>
-  <title>Deplot Project</title>
-  <link rel="stylesheet" href="style.css" />
+	<title>Deplot Project</title>
+	<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <div id="wrapper">
-  <%= yield %>
+	<%= yield %>
 </div>
 </body>
 </html>
@@ -268,11 +268,11 @@ EOF
       File.open "style.less", "w" do |file|
         file.write <<-EOF
 body {
-  font-family: "Helvetica", sans-serif;
+	font-family: "Helvetica", sans-serif;
 }
 #wrapper {
-  width: 500px;
-  margin: 0px auto;
+	width: 500px;
+	margin: 0px auto;
 }
 EOF
       end
@@ -282,10 +282,10 @@ EOF
     File.open "Deplotfile", "w" do |file|
       file.write <<-EOF
 path '/' do
-  render "index.markdown"
+	render "index.markdown"
 end
 path '/about/' do
-  render "about.markdown"
+	render "about.markdown"
 end
 
 publish
@@ -301,14 +301,14 @@ guard :coffeescript, :input => 'assets', :output => '.'
 # CSS <- LESS, SASS
 guard :sass, :input => 'assets', :output => '.'
 guard :less, :output => '.' do
-watch(/^assets\\/(.+\.less)$/)
+	watch(/^assets\\/(.+\.less)$/)
 end
 
 # Invoke deplot
 guard :shell do
 watch(/(assets|content)\\/(.*)/) do |m|
-   `echo ""; echo "File '\#{m[2]}' changed."; deplot make`
- end
+		`echo ""; echo "File '\#{m[2]}' changed."; deplot make`
+	end
 end
 EOF
     end
