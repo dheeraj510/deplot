@@ -227,8 +227,12 @@ def publish
       sources_rendered = []
       # Read source/s
       Dir.chdir $content_dir do
+				paths = []
+				if source.is_a? Array
+					source, paths = source
+				end
         Dir.chdir source do
-          Dir.glob("*").each do |content_file|
+          (paths == [] ? Dir.glob("*") : paths).each do |content_file|
             #content = File.read content_file
             puts "  Read source file #{source}/#{content_file}"
       			template_arguments.merge! :source => "#{source}#{content_file}"
