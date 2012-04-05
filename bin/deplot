@@ -47,6 +47,7 @@ def publish
   $tasks.each do |task|
     action, path, source, $layout = task
     content = ""
+    template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
 		
     if action == "render-single"
       
@@ -55,9 +56,13 @@ def publish
       destination_dir = File.dirname path
       destination_base = File.basename path
       if /\/$/ =~ path
-        destination_dir = path
+        destination_dir = path.gsub /\/$/, ""
         destination_base = "index.html"
       end
+      template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
+			template_arguments.merge! :file_name => destination_base
+			template_arguments.merge! :source => source
+			template_arguments.merge! :depth => (destination_dir.count "/")
     
       puts "Rendering path '"+destination_dir+destination_base+"'"
       # make path
@@ -99,9 +104,8 @@ def publish
       # Render and write
       Dir.chdir "."+destination_dir do
         File.open destination_base, "w" do |file|
-					file_name = destination_base
-          file.puts layout_tilt.render(Object.new, {:file_name => file_name}){
-            source_tilt.render(Object.new, {:file_name => file_name})
+          file.puts layout_tilt.render(Object.new, template_arguments){
+            source_tilt.render(Object.new, template_arguments)
           }
         end
       end
@@ -113,7 +117,7 @@ def publish
       destination_dir = File.dirname path
       destination_base = File.basename path
       if /\/$/ =~ path
-        destination_dir = path
+        destination_dir = path.gsub /\/$/, ""
         destination_base = "index.html"
       end
     
@@ -127,6 +131,7 @@ def publish
     
       # Read source
       Dir.chdir $content_dir do
+        source.gsub!(/\/$/, "")
         Dir.chdir source do
           # Create layout tilt instance
           layout_tilt = nil
@@ -138,9 +143,9 @@ def publish
             next
           end
           Dir.glob("*").each do |content_file|
-            #content = File.read content_file
             puts "  Read source file."
-            
+        		template_arguments.merge! :source => "#{source}/#{content_file}"
+        		
             # Create tilt instances
             source_tilt = nil
             source_tilt = Tilt.new(content_file)
@@ -148,15 +153,18 @@ def publish
                puts "  Source file could not be rendered. Skipping..."
                next
             end
-            puts "  Created tilt instances."
+            puts "  Created tilt instance."
             
             # Render and write
             Dir.chdir $root_dir+destination_dir do
               file_name = File.basename(content_file).gsub(File.extname(content_file), ".html")
+              template_arguments.merge! :path => "#{destination_dir}/#{file_name}"
+          		template_arguments.merge! :file_name => file_name
+          		template_arguments.merge! :depth => (destination_dir.count "/")
 							puts "  file name: " + file_name
               File.open destination_base.gsub("#", file_name), "w" do |file|
-                file.puts layout_tilt.render(Object.new, {:file_name => file_name}){
-                  source_tilt.render(Object.new, {:file_name => file_name})
+                file.puts layout_tilt.render(Object.new, template_arguments){
+                  source_tilt.render(Object.new, template_arguments)
                 }
               end
             end
@@ -165,16 +173,19 @@ def publish
         end
       end
     elsif action == "render-all-one-file"
-      puts "render-all-one-file"
       
       ## R E N D E R   A L L   O N E   F I L E
       # Destination
       destination_dir = File.dirname path
       destination_base = File.basename path
       if /\/$/ =~ path
-        destination_dir = path
-        destination_base = "#"
+        destination_dir = path.gsub /\/$/, ""
+        destination_base = "index.html"
       end
+      
+      template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
+			template_arguments.merge! :file_name => destination_base
+			template_arguments.merge! :depth => (destination_dir.count "/")
     
       puts "Rendering path/s '"+destination_dir+"/...'"
       # make path
@@ -191,6 +202,7 @@ def publish
           Dir.glob("*").each do |content_file|
             #content = File.read content_file
             puts "  Read source file."
+      			template_arguments.merge! :source => "#{source}#{content_file}"
             
             # Create tilt instance
             source_tilt = nil
@@ -200,7 +212,7 @@ def publish
                next
             end
             puts "  Created tilt instance."
-            sources_rendered << [content_file, source_tilt.render(Object.new, {})]
+            sources_rendered << {:content => source_tilt.render(Object.new, template_arguments)}.merge(template_arguments)
           end
         end
       end
