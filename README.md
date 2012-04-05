@@ -3,12 +3,51 @@ deplot
 
 Deplot is a ruby gem to easily create and manage a static web site.
 
+Usage
+-----
+
+Deplot separates content from markup. It has a custom DSL to describe your site's pages in an elegant way:
+
+```ruby
+path "/" do
+	render "index.markdown"
+end
+
+publish
+```
+
+You can create multiple pages from multiple source files with `render_all` (the `#` is replaced by the file name with `.html` extension):
+
+```ruby
+path "/blog/#" do # will create /blog/<file_name>.html
+	render_all "blog/"
+end
+```
+
+or create an index file from multiple sources:
+
+```ruby
+path "/blog/" do # will create /blog/index.html
+	render_all "blog/"
+end
+```
+
+Deplot uses [tilt][tilt] to render the source and layout file/s, so it can be used with almost every markup language and template engine.
+
+Assets like `LESS`, `SASS` or `CoffeeScript` files are compiled by [guard][guard], which will also call deplot if any content or layout changes. Take a look at the default `Guardfile`, which has usable default settings. Or just run `guard` and press `enter` to compile everything.
+
+Since all files are compiled into the root directory of the project, you can deploy your site with [git-ftp][git-ftp] - take a look at the project's page for details.
+
 Development
 -----------
 
-The `rubygem` branch – an attempt to make `deplot` into a rails-like gem - is still under development. Though this is a working gem, you will need to manually build and install the gem. Also, much of the functionality is not yet implemented.
+To use the latest version, you will need to manually build and install the gem. A `gem build deplot.gemspec; sudo gem install deplot-0.0.x.x.gem` in the cloned repo will suffice.
 
 License
 -------
 
 See LICENSE file.
+
+[tilt]: https://github.com/rtomayko/tilt
+[guard]: https://
+[git-ftp]: https://
