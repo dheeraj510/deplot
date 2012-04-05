@@ -373,22 +373,27 @@ EOF
       end
     end
   end
-  
-  desc "new <project_name>", "Create a new deplot project"
-  def new(project_name)
+	
+	desc "new <project_name> (<git_repo>)", "Create a new deplot project, if a git repo is specified by cloning an existing skeleton"
+  def new(project_name, git_skeleton = "")
     if File.exist? project_name
       puts "Directory '"+project_name+"' already exists. Exiting..."
       return
     end
     puts "Creating project folder..."
-    FileUtils.mkdir project_name
-    $root_dir = Dir.pwd + "/" + project_name
-    $assets_dir = $root_dir + "/assets"
-    $content_dir = $root_dir + "/content"
-    Dir.chdir project_name do
-      init
-    end  
-    puts "Finished creating '"+project_name+"'- ready to build your site!"
+		if git_skeleton == ""
+			FileUtils.mkdir project_name
+		  $root_dir = Dir.pwd + "/" + project_name
+		  $assets_dir = $root_dir + "/assets"
+	    $content_dir = $root_dir + "/content"
+	   	Dir.chdir project_name do
+		    init
+		  end
+		else
+    	`git clone #{git_skeleton} #{project_name}`
+    	`rm -rf #{project_name}/.git`
+    end
+		puts "Finished creating '"+project_name+"'- ready to build your site!"
   end
   
   desc "make", "Run deplot and build your project"
