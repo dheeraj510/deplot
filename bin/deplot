@@ -56,6 +56,27 @@ def path path, &block
     $tasks << [$render_type, path, $current_source, $layout]
   end
 end
+def partial name, options = {}
+	begin
+    source_tilt = Tilt.new($assets_dir+"/"+name)
+	rescue Exception => e
+		puts "- ERROR creating tilt instance (possibly missing source file for partial)."
+		return ""
+	end
+	if options.has_key? :layout
+		begin
+      layout_tilt = Tilt.new(options[:layout])
+		rescue Exception => e
+			puts "- ERROR creating tilt instance (possibly missing layout file for partial)."
+			return ""
+		end
+		return layout_tilt.render(Object.new, template_arguments) do
+			source_tilt.render(Object.new, {})
+		end
+	else
+		return source_tilt.render(Object.new, {})
+	end
+end
 def check_directories?
 	[$assets_dir, $content_dir].each do |dir|
 		unless File.exists?(dir) and File.directory?(dir)
