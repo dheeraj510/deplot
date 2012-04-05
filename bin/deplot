@@ -229,7 +229,7 @@ def publish
       # Render and write
       Dir.chdir "."+destination_dir do
         File.open destination_base, "w" do |file|
-          file.puts layout_tilt.render(Object.new, {:items => sources_rendered})
+          file.puts layout_tilt.render(Object.new, {:items => sources_rendered}.merge(template_arguments))
         end
       end
     end # End of action switching
