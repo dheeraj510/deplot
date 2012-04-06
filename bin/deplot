@@ -10,6 +10,7 @@ $assets_dir = Dir.pwd+"/assets"
 $content_dir = Dir.pwd+"/content"
 $root_dir = Dir.pwd
 $template_arguments = {}
+$variables = {}
 
 $tasks = []
 $render_type = ""
@@ -21,6 +22,9 @@ def assets_dir dir
 end
 def content_dir dir
 	$content_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
+end
+def variables vars
+  $variables.merge! vars
 end
 def layout file
   $layout = file
@@ -47,6 +51,7 @@ def path path, &block
   $current_source = ""
   $layout = "layout.erb"
 	$options = {}
+	$variables = {}
   
   # set
   block.call
@@ -54,9 +59,9 @@ def path path, &block
   # remember
   if $render_type == "render-all"
     $render_type = (/\#/ =~ path) ? "render-all" : "render-all-one-file"
-    $tasks << [$render_type, path, $current_source, $layout, $options]
+    $tasks << [$render_type, path, $current_source, $layout, $options, $variables]
   else
-    $tasks << [$render_type, path, $current_source, $layout, $options]
+    $tasks << [$render_type, path, $current_source, $layout, $options, $variables]
   end
 end
 def reverse_order
@@ -94,9 +99,10 @@ end
 def publish
   puts "Publishing site..."
   $tasks.each do |task|
-    action, path, source, $layout, options = task
+    action, path, source, $layout, options, variables = task
     content = ""
     $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
+		$template_arguments.merge! variables
 		unless check_directories?
 			puts "- ERROR: content or assets directory does't exist. Exiting..."
 			return
