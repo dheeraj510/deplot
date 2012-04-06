@@ -376,9 +376,6 @@ EOF
 path '/' do
 	render "index.markdown"
 end
-path '/about/' do
-	render "about.markdown"
-end
 
 publish
 EOF
@@ -408,16 +405,53 @@ EOF
     Dir.chdir $content_dir do
       File.open "index.markdown", "w" do |file|
         file.write <<-EOF
-# Index page
+# New deplot project
 
-Just some example text
-EOF
-      end
-      File.open "about.markdown", "w" do |file|
-        file.write <<-EOF
-# About page
+This is the default page of your new project. Change the Deplotfile in the project
+directory to add new routes (see examples below) or change the contents of this file
+by editing `content/index.markdown`. Remember to call `deplot make` to build the
+project or, better, run `guard` to recompile if anything changes.
 
-About this site
+## Editing the Deplotfile
+
+The basic syntax to describe a page of your site is to call `path` with the page location
+as a string and with a block containing the specific instructions, like the `render`
+method:
+
+```
+path '/' do
+	render "index.markdown"
+end
+```
+
+This is, by the way, also the code that is used to generate this introduction page.  
+To render more than one file, for example all files in a directory called `blog/`,
+you can use `render_all`:
+
+```
+path '/blog/#'
+	render_all "blog/"
+end
+```
+
+The symbol `#` will then be replaced by the name of the source file (without its
+extension and with `.html` at the end). Omitting the symbol will cause deplot to render
+all source files into one single file. The code below will produce an index file
+`blog/index.html` that uses another layout (`layout_index.erb`).
+
+```
+path '/blog/'
+	layout "layout_index.erb"
+	render_all "blog/"
+end
+
+## Editing content
+
+All content is by default in the directory `content/` and can be written in any language
+that `tilt` understands. The directory in which deplot searches for the source files can
+be changed with a call to `content_dir`, and the directory for all assets (layouts,
+stylesheets) with `assets_dir`.
+
 EOF
       end
     end
