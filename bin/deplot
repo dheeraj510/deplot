@@ -17,6 +17,8 @@ $render_type = ""
 $current_source = ""
 $layout = ""
 $options = {}
+
+# dsl methods for page specification
 def assets_dir dir
 	$assets_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
 end
@@ -45,6 +47,8 @@ def render_all path
   $render_type = "render-all"
   $current_source = path
 end
+
+# base of route specification
 def path path, &block
   # reset
   $render_type = ""
@@ -64,9 +68,16 @@ def path path, &block
     $tasks << [$render_type, path, $current_source, $layout, $options, $variables]
   end
 end
+
+# set options
 def reverse_order
 	$options[:reverse_order] = true
 end
+def extension ext
+	$options[:extension] = ext
+end
+
+# methods for partials
 def partial name, options = {}
 	begin
     source_tilt = Tilt.new($assets_dir+"/"+name)
@@ -88,6 +99,8 @@ def partial name, options = {}
 		return source_tilt.render(Object.new, $template_arguments)
 	end
 end
+
+# publishing methods
 def check_directories?
 	[$assets_dir, $content_dir].each do |dir|
 		unless File.exists?(dir) and File.directory?(dir)
@@ -103,6 +116,7 @@ def publish
     content = ""
     $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
 		$template_arguments.merge! variables
+		options[:extension] = (options[:extension].nil?) ? "html" : options[:extension]
 		unless check_directories?
 			puts "- ERROR: content or assets directory does't exist. Exiting..."
 			return
@@ -116,7 +130,7 @@ def publish
       destination_base = File.basename path
       if /\/$/ =~ path
         destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.html"
+        destination_base = "index.#{options[:extension]}"
       end
       $template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
 			$template_arguments.merge! :file_name => destination_base
@@ -187,7 +201,7 @@ def publish
       destination_base = File.basename path
       if /\/$/ =~ path
         destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.html"
+        destination_base = "index.#{options[:extension]}"
       end
     
       puts "Rendering path/s '"+destination_dir+"/...'"
@@ -238,7 +252,7 @@ def publish
             
             # Render and write
             Dir.chdir $root_dir+destination_dir do
-              file_name = File.basename(content_file).gsub(File.extname(content_file), ".html")
+              file_name = File.basename(content_file).gsub(File.extname(content_file), ".#{options[:extension]}")
               $template_arguments.merge! :path => "#{destination_dir}/#{file_name}"
           		$template_arguments.merge! :file_name => file_name
           		$template_arguments.merge! :depth => (destination_dir.count "/")
@@ -260,7 +274,7 @@ def publish
       destination_base = File.basename path
       if /\/$/ =~ path
         destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.html"
+        destination_base = "index.#{options[:extension]}"
       end
       
       $template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
