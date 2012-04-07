@@ -438,7 +438,7 @@ The basic syntax to describe a page of your site is to call `path` with the page
 as a string and with a block containing the specific instructions, like the `render`
 method:
 
-```
+```ruby
 path '/' do
 	render "index.markdown"
 end
@@ -448,7 +448,7 @@ This is, by the way, also the code that is used to generate this introduction pa
 To render more than one file, for example all files in a directory called `blog/`,
 you can use `render_all`:
 
-```
+```ruby
 path '/blog/#'
 	render_all "blog/"
 end
@@ -459,7 +459,7 @@ extension and with `.html` at the end). Omitting the symbol will cause deplot to
 all source files into one single file. The code below will produce an index file
 `blog/index.html` that uses another layout (`layout_index.erb`).
 
-```
+```ruby
 path '/blog/'
 	layout "layout_index.erb"
 	render_all "blog/"

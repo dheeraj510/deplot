@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.version     = '0.0.0'
   s.date        = '2011-02-23'
   s.summary     = "Deplot"
-  s.description = "A static site builder"
+  s.description = "A ruby static web site generator"
   s.authors     = ["Cyril Nusko"]
   s.email       = 'gitcdn@gmail.com'
   #s.files       = ["lib/deplot.rb"]
