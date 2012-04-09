@@ -3,10 +3,22 @@ deplot
 
 Deplot is a static web site generator with a ruby DSL.
 
-Usage
+Intention
+---------
+
+Deplot is intended to simplify the progress of creating and maintaining a static web site. Its main advantages are:
+
+* Separating content from markup with layout (template) files
+* Independency from specific markup languages by using [tilt][tilt] in both layout and content files
+* Simplifying the design/development workflow with pre-built Guardfile that allows [guard][guard] to recompile any asset or the whole project if a source file changes.
+* Easy deployment with a folder structure ready for [git-ftp][git-ftp]
+
+Installation and usage
 -----
 
-Deplot separates content from markup. If the deplot gem is installed, calling `deplot new <project_name>` will create a project directory with all the files and directories needed to get a new site started. You can also use an existing skeleton with `deplot new <project_name> <git_url>`, which will clone the specified git repo. Deplot's built upon a custom DSL that's used to describe your site's pages (in the `Deplotfile`):
+Install the deplot gem via rubygems.org: `gem install deplot`. Or build it directly from the sources with `gem build deplot.gemspec; gem install deplot-0.0.x.gem` in the cloned repo. For both `gem install` commands, admin rights may be required.
+
+If the deplot gem is installed, calling `deplot new <project_name>` will create a project directory with all the files and directories needed to get a new site started. You can also use an existing skeleton with `deplot new <project_name> <git_url>`, which will clone the specified git repo. Deplot's built upon a custom DSL that's used to describe your site's pages (in the `Deplotfile`):
 
 ```ruby
 path "/" do
