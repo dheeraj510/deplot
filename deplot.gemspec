@@ -1,14 +1,21 @@
 Gem::Specification.new do |s|
   s.name        = 'deplot'
-  s.version     = '0.0.0'
-  s.date        = '2011-02-23'
-  s.summary     = "Deplot"
+  s.version     = '0.0.1'
+  s.date        = '2012-04-09'
   s.description = "A ruby static web site generator"
+  s.summary     = s.description
   s.authors     = ["Cyril Nusko"]
   s.email       = 'gitcdn@gmail.com'
-  #s.files       = ["lib/deplot.rb"]
+  s.files       = ["bin/deplot"]
   s.homepage    = 'http://www.github.com/cdn64/deplot'
-  s.name        = 'deplot'
-  s.version     = '0.0.0'
   s.executables << 'deplot'
+	s.files = %w[
+		Gemfile
+		LICENSE
+		README.md
+		bin/deplot
+		deplot.gemspec
+	]
+	s.add_dependency 'thor', "~> 0.14.6"
+	s.add_dependency 'tilt', "~> 1.3.3"
 end
