@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'deplot'
   s.version     = '0.0.2'
-  s.date        = '2012-04-09'
+  s.date        = '2012-04-10'
   s.description = "A ruby static web site generator"
   s.summary     = s.description
   s.authors     = ["Cyril Nusko"]
