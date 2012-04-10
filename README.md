@@ -10,7 +10,7 @@ Deplot is intended to simplify the progress of creating and maintaining a static
 
 * Separating content from markup with layout (template) files
 * Independency from specific markup languages by using [tilt][tilt] in both layout and content files
-* Simplifying the design/development workflow with pre-built Guardfile that allows [guard][guard] to recompile any asset or the whole project if a source file changes.
+* Simplifying the design/development workflow with a pre-built Guardfile that allows [guard][guard] to recompile any asset or the whole project if a source file changes.
 * Easy deployment with a folder structure ready for [git-ftp][git-ftp]
 
 Installation and usage
