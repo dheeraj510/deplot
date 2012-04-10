@@ -9,7 +9,11 @@ require 'tilt'
 $assets_dir = Dir.pwd+"/assets"
 $content_dir = Dir.pwd+"/content"
 $root_dir = Dir.pwd
+
+$is_currently_rendering = false
+
 $template_arguments = {}
+$global_variables = {}
 $variables = {}
 
 $tasks = []
@@ -26,7 +30,11 @@ def content_dir dir
 	$content_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
 end
 def variables vars
-  $variables.merge! vars
+	if $is_currently_rendering
+  	$variables.merge! vars
+	else
+		$global_variables.merge! vars
+	end
 end
 def layout file
   $layout = file
@@ -56,9 +64,12 @@ def path path, &block
   $layout = "layout.erb"
 	$options = {}
 	$variables = {}
-  
+  $is_currently_rendering = true
+	
   # set
   block.call
+	
+	$is_currently_rendering = false
   
   # remember
   if $render_type == "render-all"
@@ -113,6 +124,8 @@ def publish
   puts "Publishing site..."
   $tasks.each do |task|
     action, path, source, $layout, options, variables = task
+		variables.merge! $global_variables
+		puts $global_variables.inspect
     content = ""
     $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
 		$template_arguments.merge! variables
