@@ -380,12 +380,26 @@ EOF
       File.open "style.less", "w" do |file|
         file.write <<-EOF
 body {
+	margin: 0;
 	font-family: "Helvetica", sans-serif;
+	background-color: #EEE;
 }
 #wrapper {
 	width: 500px;
-	margin: 0px auto;
+	padding: 10px;
+	margin: 10px auto;
+	background-color: #FFF;
+	border: 3px solid #DDD;
 }
+p {
+	color: #444;
+}
+h1 {
+	margin-bottom: 20px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #EEE;
+}
+
 EOF
       end
     end
