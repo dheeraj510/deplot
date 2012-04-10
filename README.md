@@ -24,8 +24,6 @@ If the deplot gem is installed, calling `deplot new <project_name>` will create 
 path "/" do
 	render "index.markdown"
 end
-
-publish
 ```
 
 You can create multiple pages from multiple source files with `render_all` (the `#` is replaced by the file name with `.html` extension):

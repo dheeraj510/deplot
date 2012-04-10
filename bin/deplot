@@ -423,8 +423,6 @@ EOF
 path '/' do
 	render "index.markdown"
 end
-
-publish
 EOF
     end
     # Guardfile
@@ -539,6 +537,7 @@ EOF
     end
     $LOAD_PATH.unshift(Dir.pwd)
     load "Deplotfile"
+		publish
   end
 end
 Deplot.start
