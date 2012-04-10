@@ -125,7 +125,6 @@ def publish
   $tasks.each do |task|
     action, path, source, $layout, options, variables = task
 		variables.merge! $global_variables
-		puts $global_variables.inspect
     content = ""
     $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
 		$template_arguments.merge! variables
