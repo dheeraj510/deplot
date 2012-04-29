@@ -445,6 +445,18 @@ watch(/(assets|content)\\/(.*)/) do |m|
 end
 EOF
     end
+		# .git-ftp-ignore
+    puts "  Creating .git-ftp-ignore..."
+    File.open ".git-ftp-ignore", "w" do |file|
+      file.write <<-EOF
+.gitignore
+.git-ftp-ignore
+Deplotfile
+Guardfile
+assets/.*
+content/.*
+EOF
+    end
     # Example content
     Dir.chdir $content_dir do
       File.open "index.markdown", "w" do |file|
