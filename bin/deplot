@@ -22,6 +22,17 @@ $current_source = ""
 $layout = ""
 $options = {}
 
+$errors_occured = 0
+
+# helper methods
+def puts_alert text
+	puts "#{Thor::Shell::Color::RED}#{text}#{Thor::Shell::Color::CLEAR}"
+	$errors_occured += 1
+end
+def puts_success text
+	puts "#{Thor::Shell::Color::GREEN}#{text}#{Thor::Shell::Color::CLEAR}"
+end
+
 # dsl methods for page specification
 def assets_dir dir
 	$assets_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
@@ -176,7 +187,7 @@ def publish
 				begin
 	        layout_tilt = Tilt.new($layout)
 				rescue Exception => e
-					puts "- ERROR creating tilt instance (possibly missing layout file)."
+					puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
 					layout_tilt = nil
 				end
       end
@@ -189,7 +200,7 @@ def publish
 				begin
 	        source_tilt = Tilt.new(source)
 				rescue Exception => e
-					puts "- ERROR creating tilt instance (possibly missing source file)."
+					puts_alert "- ERROR creating tilt instance (possibly missing source file)."
 					source_tilt = nil
 				end
       end
@@ -240,7 +251,7 @@ def publish
 						begin
 			        layout_tilt = Tilt.new($layout)
 						rescue Exception => e
-							puts "- ERROR creating tilt instance (possibly missing layout file)."
+							puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
 							layout_tilt = nil
 						end
           end
@@ -257,7 +268,7 @@ def publish
 						begin
             	source_tilt = Tilt.new(content_file)
 						rescue Exception => e
-							puts "- ERROR creating tilt instance (possibly missing source file)."
+							puts_alert "- ERROR creating tilt instance (possibly missing source file)."
 							source_tilt = nil
 						end
             if source_tilt.nil?
@@ -326,7 +337,7 @@ def publish
 						begin
             	source_tilt = Tilt.new(content_file)
 						rescue Exception => e
-							puts "- ERROR creating tilt instance (possibly missing source file)."
+							puts_alert "- ERROR creating tilt instance (possibly missing source file)."
 							source_tilt = nil
 						end
             if source_tilt.nil?
@@ -344,7 +355,7 @@ def publish
 				begin
 	        layout_tilt = Tilt.new($layout)
 				rescue Exception => e
-					puts "- ERROR creating tilt instance (possibly missing layout file)."
+					puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
 					layout_tilt = nil
 				end
       end
@@ -361,6 +372,13 @@ def publish
       puts "  Wrote to file."
     end # End of action switching
   end
+	if $errors_occured == 0
+		puts_success "Successfully created all pages."
+	elsif $errors_occured == 1
+		puts_alert "#{$errors_occured} error occurred!"
+	else
+		puts_alert "#{$errors_occured} errors occurred!"
+	end
 end
 
 # Thor: Deplot CLI
