@@ -7,6 +7,27 @@ require 'fileutils'
 require 'tilt'
 require 'colorize'
 
+=begin
+
+This file, and Deplot itself, consist/s of three major parts:
+
+1. The 'DeplotRenderer' class
+  contains all the logic of deplot and the rendering process
+2. The DSL methods
+  is the 'interface' to deplot, accessible via the Deplotfile
+3. The 'Deplot' CLI class
+  provides all command line methods to Thor
+
+This seemed the least complex way to do it; if you can think
+of any simplifications or suggestions for alternative designs,
+please submit them to the issue tracker. Thanks!
+
+=end
+
+#
+# DeplotRenderer, the class with the render logic
+#
+
 class DeplotRenderer
   attr_accessor :output_to, :layout
   alias :copy_to= :output_to=
@@ -15,6 +36,15 @@ class DeplotRenderer
     puts " ---->#{s}".yellow
   end
   
+  def initialize type, files, base_dir
+    @rendered = false
+    @read = false
+    @sources = files.collect { |file| {:filename => file} }
+    @base_dir = base_dir
+    @output_to = ""
+    @layout = ""
+    @type = type
+  end
   def render
     return if @type == "media"
     read if @read == false
@@ -22,8 +52,7 @@ class DeplotRenderer
     @rendered = true
     @sources.each do |source|
       # Render content
-      file = source[:filename]
-      renderer = Tilt[file]
+      renderer = Tilt[source[:filename]]
       unless renderer.nil?
         source[:content] = renderer.new { source[:content] }.render
       else
@@ -38,42 +67,22 @@ class DeplotRenderer
   def read
     return if @type == "media"
     puts "Reading files..."
-    @sources.collect do |source|
+    @sources.each do |source|
       source[:content] = File.read source[:filename]
       puts "  Read '#{source[:filename]}'."
-      source
     end
     @read = true
   end
-  def initialize type, files, base_dir
-    @rendered = false
-    @read = false
-    @sources = files.collect { |file| {:filename => file} }
-    @base_dir = base_dir
-    @output_to = ""
-    @layout = ""
-    @type = type
-  end
   def filter options
-    if options.has_key? :only
-      options[:only].each do |only|
-        @sources.keep_if do |source|
+    if options.has_key? :only or options.has_key? :exclude
+      filter_type = (options.has_key? :only) ? :only : :exclude
+      options[filter_type].each do |filter|
+        @sources.send (filter_type == :only ? :keep_if : :delete_if) do |source|
           file = source[:filename]
-          if only.is_a? Regexp
-            only =~ file
+          if filter.is_a? Regexp
+            filter =~ file
           else
-            only == file || @base_dir + only == file
-          end
-        end
-      end
-    elsif options.has_key? :exclude
-      options[:exclude].each do |exclude|
-        @sources.delete_if do |source|
-          file = source[:filename]
-          if exclude.is_a? Regexp
-            exclude =~ file
-          else
-            exclude == file || @base_dir + exclude == file
+            filter == file || @base_dir + filter == file
           end
         end
       end
@@ -83,33 +92,30 @@ class DeplotRenderer
   end
   def apply module_name, *args
     begin
-      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join("")
+      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join()
       the_module = Kernel.const_get(module_const).new
     rescue
       raise "'#{module_name}' not defined! Maybe not 'use'd?"
     end
     puts "Applying '#{module_name}'..."
+    # Prepare module
+    module_type = nil
     if the_module.is_a? DeplotPreprocessor
       raise "Cannot preprocess if already rendered! (module '#{module_name}')" if @rendered == true
       read if @read == false
-      @sources.collect do |source|
-        the_module.preprocess source, args
-        source
-      end
+      module_type = :preprocess
     elsif the_module.is_a? DeplotProcessor
       read if @read == false # No preprocessors
       render if @rendered == false
-      @sources.collect do |source|
-        the_module.process source, args
-        source
-      end
-    elsif the_module.is_a? DeplotFilter
-      @sources.collect do |source|
-        the_module.filter source, args
-        source
-      end
+      module_type = :process
+    elsif the_module.is_a? DeplotFilter  
+      module_type = :filter
     else
       raise "'#{module_name}' is not a deplot module!"
+    end  
+    # Apply to each source
+    @sources.each do |source|
+      the_module.send module_type, source, args
     end
   end
   def output
@@ -143,21 +149,23 @@ $current_instance = nil
 
 class DeplotFilter
   def filter sources, arguments
-    raise "Module error: 'run' method is not defined!"
+    raise "Module error: 'filter' method is not defined!"
   end
 end
 class DeplotPreprocessor
   def preprocess sources, arguments
-    raise "Module error: 'run' method is not defined!"
+    raise "Module error: 'preprocess' method is not defined!"
   end
 end
 class DeplotProcessor
   def process sources, arguments
-    raise "Module error: 'run' method is not defined!"
+    raise "Module error: 'process' method is not defined!"
   end
 end
 
-# Deplot DSL
+#
+# Deplot DSL, the language of the Deplotfile
+#
 
 def use module_name
   puts "Loading '#{module_name}'..."
@@ -192,9 +200,15 @@ end
   end
 end
 
-# Deplot Thor CLI
+#
+# Deplot Thor CLI, all the methods of the CLI
+#
 
 class Deplot < Thor
+  desc "version", "Show the installed deplot gem's version."
+  def version
+    puts "Deplot version #{VERSION}."
+  end
   desc "make", "Build the deplot project in the current directory"
   def make
     puts "Deplot #{VERSION} will re/build the project.".green
