@@ -18,4 +18,5 @@ Gem::Specification.new do |s|
 	]
 	s.add_dependency 'thor', "~> 0.14.6"
 	s.add_dependency 'tilt', "~> 1.3.3"
+	s.add_dependency 'colorize'
 end

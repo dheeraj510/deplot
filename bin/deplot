@@ -1,575 +1,210 @@
 #!/usr/bin/env ruby
 
+VERSION = "0.1.0"
+
 require 'thor'
 require 'fileutils'
 require 'tilt'
+require 'colorize'
+
+class DeplotRenderer
+  attr_accessor :output_to, :layout
+  alias :copy_to= :output_to=
+  
+  def alert s
+    puts " ---->#{s}".yellow
+  end
+  
+  def render
+    return if @type == "media"
+    read if @read == false
+    puts "Rendering..."
+    @rendered = true
+    @sources.each do |source|
+      # Render content
+      file = source[:filename]
+      renderer = Tilt[file]
+      unless renderer.nil?
+        source[:content] = renderer.new { source[:content] }.render
+      else
+        puts "No Tilt renderer found for '#{source[:filename]}', falling back to echo.".yellow
+      end
+      # Render layout
+      unless @layout == ""
+        Tilt.new("assets/#{@layout}").render{ source[:content] }
+      end
+    end
+  end
+  def read
+    return if @type == "media"
+    puts "Reading files..."
+    @sources.collect do |source|
+      source[:content] = File.read source[:filename]
+      puts "  Read '#{source[:filename]}'."
+      source
+    end
+    @read = true
+  end
+  def initialize type, files, base_dir
+    @rendered = false
+    @read = false
+    @sources = files.collect { |file| {:filename => file} }
+    @base_dir = base_dir
+    @output_to = ""
+    @layout = ""
+    @type = type
+  end
+  def filter options
+    if options.has_key? :only
+      options[:only].each do |only|
+        @sources.keep_if do |source|
+          file = source[:filename]
+          if only.is_a? Regexp
+            only =~ file
+          else
+            only == file || @base_dir + only == file
+          end
+        end
+      end
+    elsif options.has_key? :exclude
+      options[:exclude].each do |exclude|
+        @sources.delete_if do |source|
+          file = source[:filename]
+          if exclude.is_a? Regexp
+            exclude =~ file
+          else
+            exclude == file || @base_dir + exclude == file
+          end
+        end
+      end
+    else
+      alert "filter: No valid argument/s found."
+    end
+  end
+  def apply module_name, *args
+    begin
+      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join("")
+      the_module = Kernel.const_get(module_const).new
+    rescue
+      raise "'#{module_name}' not defined! Maybe not 'use'd?"
+    end
+    puts "Applying '#{module_name}'..."
+    if the_module.is_a? DeplotPreprocessor
+      raise "Cannot preprocess if already rendered! (module '#{module_name}')" if @rendered == true
+      read if @read == false
+      @sources.collect do |source|
+        the_module.preprocess source, args
+        source
+      end
+    elsif the_module.is_a? DeplotProcessor
+      read if @read == false # No preprocessors
+      render if @rendered == false
+      @sources.collect do |source|
+        the_module.process source, args
+        source
+      end
+    elsif the_module.is_a? DeplotFilter
+      @sources.collect do |source|
+        the_module.filter source, args
+        source
+      end
+    else
+      raise "'#{module_name}' is not a deplot module!"
+    end
+  end
+  def output
+    unless @type == "documents"
+      puts "Media not yet supported.".red
+      return
+    end
+    render if @rendered == false
+    puts "Writing files..."
+    @sources.each do |source|
+      @output_to += "/" unless @output_to =~ /\/$/
+      output_path = @output_to + source[:filename].gsub(/^#{@base_dir}/, '')
+      extname = File.extname(output_path)
+      if extname == ""
+        output_path += ".html"
+      else
+        output_path.gsub! /#{extname}$/, ".html"
+      end
+      FileUtils.mkdir_p(File.dirname(output_path))
+      File.open(output_path, "w") do |file|
+        file.write source[:content]
+      end 
+      puts "  Wrote to file '#{output_path}'."
+    end
+  end
+end
+
+$current_instance = nil
+
+# Module base classes
+
+class DeplotFilter
+  def filter sources, arguments
+    raise "Module error: 'run' method is not defined!"
+  end
+end
+class DeplotPreprocessor
+  def preprocess sources, arguments
+    raise "Module error: 'run' method is not defined!"
+  end
+end
+class DeplotProcessor
+  def process sources, arguments
+    raise "Module error: 'run' method is not defined!"
+  end
+end
 
 # Deplot DSL
 
-$assets_dir = Dir.pwd+"/assets"
-$content_dir = Dir.pwd+"/content"
-$root_dir = Dir.pwd
-
-$is_currently_rendering = false
-
-$template_arguments = {}
-$global_variables = {}
-$variables = {}
-
-$tasks = []
-$render_type = ""
-$current_source = ""
-$layout = ""
-$options = {}
-
-$errors_occured = 0
-
-# helper methods
-def puts_alert text
-	puts "#{Thor::Shell::Color::RED}#{text}#{Thor::Shell::Color::CLEAR}"
-	$errors_occured += 1
-end
-def puts_success text
-	puts "#{Thor::Shell::Color::GREEN}#{text}#{Thor::Shell::Color::CLEAR}"
+def use module_name
+  puts "Loading '#{module_name}'..."
+  require "./modules/#{module_name}.rb"
 end
 
-# dsl methods for page specification
-def assets_dir dir
-	$assets_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
-end
-def content_dir dir
-	$content_dir = $root_dir + "/" + dir.gsub(/^\//, "").gsub(/\/$/, "")
-end
-def variables vars
-	if $is_currently_rendering
-  	$variables.merge! vars
-	else
-		$global_variables.merge! vars
-	end
-end
-def layout file
-  $layout = file
-end
-def render file
-  $render_type = "render-single"
-  $current_source = file
-end
-def render_each base = "", paths = []
-  $render_type = "render-all"
-  unless base.is_a? Array
-		$current_source = [base, paths]
-	else
-		$current_source = ["./", base]
-	end
-end
-def render_all path
-  $render_type = "render-all"
-  $current_source = path
-end
-
-# base of route specification
-def path path, &block
-  # reset
-  $render_type = ""
-  $current_source = ""
-  $layout = "layout.erb"
-	$options = {}
-	$variables = {}
-  $is_currently_rendering = true
-	
-  # set
-  block.call
-	
-	$is_currently_rendering = false
-  
-  # remember
-  if $render_type == "render-all"
-    $render_type = (/\#/ =~ path) ? "render-all" : "render-all-one-file"
-    $tasks << [$render_type, path, $current_source, $layout, $options, $variables]
-  else
-    $tasks << [$render_type, path, $current_source, $layout, $options, $variables]
+# Assign methods
+["copy_to", "output_to", "layout"].each do |variable_name|
+  self.class.send :define_method, variable_name do |*args|
+    unless $current_instance.nil?
+      $current_instance.send("#{variable_name}=", *args)
+    end
   end
 end
 
-# set options
-def reverse_order
-	$options[:reverse_order] = true
-end
-def extension ext
-	$options[:extension] = ext
-end
-
-# methods for partials
-def partial name, options = {}
-	begin
-    source_tilt = Tilt.new($assets_dir+"/"+name)
-	rescue Exception => e
-		puts "- ERROR creating tilt instance (possibly missing source file for partial)."
-		return ""
-	end
-	if options.has_key? :layout
-		begin
-      layout_tilt = Tilt.new(options[:layout])
-		rescue Exception => e
-			puts "- ERROR creating tilt instance (possibly missing layout file for partial)."
-			return ""
-		end
-		return layout_tilt.render(Object.new, $template_arguments) do
-			source_tilt.render(Object.new, $template_arguments)
-		end
-	else
-		return source_tilt.render(Object.new, $template_arguments)
-	end
-end
-
-# publishing methods
-def check_directories?
-	[$assets_dir, $content_dir].each do |dir|
-		unless File.exists?(dir) and File.directory?(dir)
-			return false
-		end
-	end
-	return true
-end
-def publish
-  puts "Publishing site..."
-  $tasks.each do |task|
-    action, path, source, $layout, options, variables = task
-		unless path == "/"
-			path = "/" + path.gsub(/^\//, "")
-		end
-		variables.merge! $global_variables
-    content = ""
-    $template_arguments = {:path => "", :source => "", :file_name => "", :depth => 0}
-		$template_arguments.merge! variables
-		options[:extension] = (options[:extension].nil?) ? "html" : options[:extension]
-		unless check_directories?
-			puts "- ERROR: content or assets directory does't exist. Exiting..."
-			return
-		end
-		
-    if action == "render-single"
-      
-      ## R E N D E R   S I N G L E
-      # Destination
-      destination_dir = File.dirname path
-      destination_base = File.basename path
-      if /\/$/ =~ path
-        destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.#{options[:extension]}"
-			end
-      $template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
-			$template_arguments.merge! :file_name => destination_base
-			$template_arguments.merge! :source => source
-			$template_arguments.merge! :depth => (destination_dir.count "/")
-    
-      puts "Rendering path '"+destination_dir.gsub(/\/$/, "")+"/#{destination_base}'"
-      # make path
-      FileUtils.mkdir_p "."+destination_dir
-      unless File.directory? "."+destination_dir
-        puts "  Path '"+path+"' could not be created. Skipping..."
-        next
-      end
-    
-      # Read source
-      Dir.chdir $content_dir do
-        unless File.exist? source
-          puts "  Source file could not be found. Skipping..."
-          next
-        end
-        content = File.read source
-      end
-      puts "  Read source file."
-    
-      # Create tilt instances
-      layout_tilt = nil
-      Dir.chdir $assets_dir do
-				begin
-	        layout_tilt = Tilt.new($layout)
-				rescue Exception => e
-					puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
-					layout_tilt = nil
-				end
-      end
-      if layout_tilt.nil?
-        puts "  Layout could not be found or rendered. Skipping..."
-        next
-      end
-      source_tilt = nil
-      Dir.chdir $content_dir do
-				begin
-	        source_tilt = Tilt.new(source)
-				rescue Exception => e
-					puts_alert "- ERROR creating tilt instance (possibly missing source file)."
-					source_tilt = nil
-				end
-      end
-      if source_tilt.nil?
-         puts "  Source file could not be rendered. Skipping..."
-         next
-      end
-      puts "  Created tilt instances."
-    
-      # Render and write
-      Dir.chdir "."+destination_dir do
-        File.open destination_base, "w" do |file|
-          file.puts layout_tilt.render(Object.new, $template_arguments){
-            source_tilt.render(Object.new, $template_arguments)
-          }
-        end
-      end
-      puts "  Wrote to file."
-    elsif action == "render-all"
-      
-      ## R E N D E R   A L L
-      # Destination
-      destination_dir = File.dirname path
-      destination_base = File.basename path
-      if /\/$/ =~ path
-        destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.#{options[:extension]}"
-			end
-    
-      puts "Rendering path/s '"+destination_dir+"/...'"
-      # make path
-      FileUtils.mkdir_p "."+destination_dir
-      unless File.directory? "."+destination_dir
-        next
-      end
-    
-      # Read source
-      Dir.chdir $content_dir do
-				paths = []
-				if source.is_a? Array
-					source, paths = source
-				end
-        source.gsub!(/\/$/, "")
-        Dir.chdir source do
-          # Create layout tilt instance
-          layout_tilt = nil
-          Dir.chdir $assets_dir do
-						begin
-			        layout_tilt = Tilt.new($layout)
-						rescue Exception => e
-							puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
-							layout_tilt = nil
-						end
-          end
-          if layout_tilt.nil?
-            puts "  Layout could not be found or rendered. Skipping..."
-            next
-          end
-          (paths == [] ? Dir.glob("*") : paths).each do |content_file|
-            puts "  Read source file #{source}/#{content_file}"
-        		$template_arguments.merge! :source => "#{source}/#{content_file}"
-        		
-            # Create tilt instances
-            source_tilt = nil
-						begin
-            	source_tilt = Tilt.new(content_file)
-						rescue Exception => e
-							puts_alert "- ERROR creating tilt instance (possibly missing source file)."
-							source_tilt = nil
-						end
-            if source_tilt.nil?
-               puts "  Source file could not be rendered. Skipping..."
-               next
-            end
-            
-            # Render and write
-            Dir.chdir $root_dir+destination_dir do
-              file_name = File.basename(content_file).gsub(File.extname(content_file), ".#{options[:extension]}")
-              $template_arguments.merge! :path => "#{destination_dir}/#{file_name}"
-          		$template_arguments.merge! :file_name => file_name
-          		$template_arguments.merge! :depth => (destination_dir.count "/")
-              File.open destination_base.gsub("#", file_name), "w" do |file|
-                file.puts layout_tilt.render(Object.new, $template_arguments){
-                  source_tilt.render(Object.new, $template_arguments)
-                }
-              end
-		          puts "  Wrote to file: " + file_name
-            end
-          end
-        end
-      end
-    elsif action == "render-all-one-file"
-      
-      ## R E N D E R   A L L   O N E   F I L E
-      # Destination
-      destination_dir = File.dirname path
-      destination_base = File.basename path
-      if /\/$/ =~ path
-        destination_dir = path.gsub /\/$/, ""
-        destination_base = "index.#{options[:extension]}"
-			end
-      
-      $template_arguments.merge! :path => "#{destination_dir}/#{destination_base}"
-			$template_arguments.merge! :file_name => destination_base
-			$template_arguments.merge! :depth => (destination_dir.count "/")
-    
-      puts "Rendering path '#{destination_dir}/#{destination_base}'"
-      # make path
-      FileUtils.mkdir_p "."+destination_dir
-      unless File.directory? "."+destination_dir
-        puts "  Path '"+path+"' could not be created. Skipping..."
-        next
-      end
-      
-      sources_rendered = []
-      # Read source/s
-      Dir.chdir $content_dir do
-				paths = []
-				if source.is_a? Array
-					source, paths = source
-				end
-        Dir.chdir source do
-          paths = (paths == [] ? Dir.glob("*") : paths)
-					if options.has_key? :reverse_order and options[:reverse_order] == true
-						paths.reverse!
-					end
-					paths.each do |content_file|
-            #content = File.read content_file
-            puts "  Read source file #{source}#{content_file}"
-      			$template_arguments.merge! :source => "#{source}#{content_file}"
-            
-            # Create tilt instance
-            source_tilt = nil
-						begin
-            	source_tilt = Tilt.new(content_file)
-						rescue Exception => e
-							puts_alert "- ERROR creating tilt instance (possibly missing source file)."
-							source_tilt = nil
-						end
-            if source_tilt.nil?
-               puts "  Source file could not be rendered. Skipping..."
-               next
-            end
-            sources_rendered << {:content => source_tilt.render(Object.new, $template_arguments)}.merge($template_arguments)
-          end
-        end
-      end
-      
-      # Create layout tilt instance
-      layout_tilt = nil
-      Dir.chdir $assets_dir do
-				begin
-	        layout_tilt = Tilt.new($layout)
-				rescue Exception => e
-					puts_alert "- ERROR creating tilt instance (possibly missing layout file)."
-					layout_tilt = nil
-				end
-      end
-      if layout_tilt.nil?
-        puts "  Layout could not be found or rendered. Skipping..."
-        next
-      end
-      # Render and write
-      Dir.chdir "."+destination_dir do
-        File.open destination_base, "w" do |file|
-          file.puts layout_tilt.render(Object.new, {:items => sources_rendered}.merge($template_arguments))
-        end	
-      end	
-      puts "  Wrote to file."
-    end # End of action switching
+# Basic methods
+["filter", "apply"].each do |method_name|
+  self.class.send :define_method, method_name do |*args|
+    unless $current_instance.nil?
+      $current_instance.send(method_name, *args)
+    end
   end
-	if $errors_occured == 0
-		puts_success "Successfully created all pages."
-	elsif $errors_occured == 1
-		puts_alert "#{$errors_occured} error occurred!"
-	else
-		puts_alert "#{$errors_occured} errors occurred!"
-	end
 end
 
-# Thor: Deplot CLI
+# DSL blocks
+["media", "documents"].each do |type|
+  self.class.send :define_method, "#{type}_in" do |dir, &block|
+    $current_instance.output unless $current_instance.nil?
+    base = "documents/#{dir}/"
+    $current_instance = DeplotRenderer.new(type, Dir.glob(base + "*") - [".", "..", ".DS_STORE"], base)
+    block.call
+  end
+end
+
+# Deplot Thor CLI
 
 class Deplot < Thor
-  
-  desc "init", "Create a new deplot project in the current directory"
-  def init
-    # Content directory
-    puts "  Making directory '"+$content_dir+"'..."
-    FileUtils.mkdir $content_dir
-    # Assets directory
-    puts "  Making directory '"+$assets_dir+"'..."
-    FileUtils.mkdir $assets_dir
-    #   Basic Layout
-    Dir.chdir $assets_dir do
-      File.open "layout.erb", "w" do |file|
-        file.write <<-EOF
-<html>
-<head>
-	<title>Deplot Project</title>
-	<link rel="stylesheet" href="style.css" />
-</head>
-<body>
-<div id="wrapper">
-	<%= yield %>
-</div>
-</body>
-</html>
-EOF
-      end
-      File.open "style.less", "w" do |file|
-        file.write <<-EOF
-body {
-	margin: 0;
-	font-family: "Helvetica", sans-serif;
-	background-color: #EEE;
-}
-#wrapper {
-	width: 500px;
-	padding: 10px;
-	margin: 10px auto;
-	background-color: #FFF;
-	border: 3px solid #DDD;
-}
-p {
-	color: #444;
-}
-h1 {
-	margin-bottom: 20px;
-	padding-bottom: 8px;
-	border-bottom: 1px solid #EEE;
-}
-
-EOF
-      end
-    end
-    # Deplotfile
-    puts "  Creating Deplotfile..."
-    File.open "Deplotfile", "w" do |file|
-      file.write <<-EOF
-path '/' do
-	render "index.markdown"
-end
-EOF
-    end
-    # Guardfile
-    puts "  Creating Guardfile..."
-    File.open "Guardfile", "w" do |file|
-      file.write <<-EOF
-# CoffeeScript
-guard :coffeescript, :input => 'assets', :output => '.'
-
-# CSS <- LESS, SASS
-guard :sass, :input => 'assets', :output => '.'
-guard :less, :output => '.' do
-	watch(/^assets\\/(.+\.less)$/)
-end
-
-# Invoke deplot
-guard :shell do
-watch(/(assets|content)\\/(.*)/) do |m|
-		`echo ""; echo "File '\#{m[2]}' changed."; deplot make`
-	end
-end
-EOF
-    end
-		# .git-ftp-ignore
-    puts "  Creating .git-ftp-ignore..."
-    File.open ".git-ftp-ignore", "w" do |file|
-      file.write <<-EOF
-.gitignore
-.git-ftp-ignore
-Deplotfile
-Guardfile
-assets/.*
-content/.*
-EOF
-    end
-    # Example content
-    Dir.chdir $content_dir do
-      File.open "index.markdown", "w" do |file|
-        file.write <<-EOF
-# New deplot project
-
-This is the default page of your new project. Change the Deplotfile in the project
-directory to add new routes (see examples below) or change the contents of this file
-by editing `content/index.markdown`. Remember to call `deplot make` to build the
-project or, better, run `guard` to recompile if anything changes.
-
-## Editing the Deplotfile
-
-The basic syntax to describe a page of your site is to call `path` with the page location
-as a string and with a block containing the specific instructions, like the `render`
-method:
-
-	path '/' do
-		render "index.markdown"
-	end
-
-This is, by the way, also the code that is used to generate this introduction page.  
-To render more than one file, for example all files in a directory called `blog/`,
-you can use `render_all`:
-
-	path '/blog/#'
-		render_all "blog/"
-	end
-
-The symbol `#` will then be replaced by the name of the source file (without its
-extension and with `.html` at the end). Omitting the symbol will cause deplot to render
-all source files into one single file. The code below will produce an index file
-`blog/index.html` that uses another layout (`layout_index.erb`).
-
-	path '/blog/'
-		layout "layout_index.erb"
-		render_all "blog/"
-	end
-
-## Editing content
-
-All content is by default in the directory `content/` and can be written in any language
-that `tilt` understands. The directory in which deplot searches for the source files can
-be changed with a call to `content_dir`, and the directory for all assets (layouts,
-stylesheets) with `assets_dir`.
-
-EOF
-      end
-    end
-  end
-	
-	desc "new <project_name> (<git_repo>)", "Create a new deplot project, if a git repo is specified by cloning an existing skeleton"
-  def new(project_name, git_skeleton = "")
-    if File.exist? project_name
-      puts "Directory '"+project_name+"' already exists. Exiting..."
-      return
-    end
-    puts "Creating project folder..."
-		if git_skeleton == ""
-			FileUtils.mkdir project_name
-		  $root_dir = Dir.pwd + "/" + project_name
-		  $assets_dir = $root_dir + "/assets"
-	    $content_dir = $root_dir + "/content"
-	   	Dir.chdir project_name do
-		    init
-		  end
-			puts "Finished creating '#{project_name}'- ready to build your site!"
-		else
-    	`git clone #{git_skeleton} #{project_name}`
-			if File.exist? project_name
-    		begin
-					`rm -rf #{project_name}/.git`
-				rescue
-					puts "Unable to delete git references."
-				end
-				puts "Finished creating '#{project_name}' - ready to build your site! (If 'git clone' didn't fail.)"
-			else
-				puts "Git clone failed (see output above)."
-			end
-    end
-  end
-  
-  desc "make", "Run deplot and build your project"
-  def make()
-    puts "Making project..."
+  desc "make", "Build the deplot project in the current directory"
+  def make
+    puts "Deplot #{VERSION} will re/build the project.".green
     unless File.exist? "Deplotfile"
-      puts "Deplotfile not found. Exiting..."
+      puts "Deplotfile not found. Exiting...".red
       return
     end
     $LOAD_PATH.unshift(Dir.pwd)
     load "Deplotfile"
-		publish
+    $current_instance.output unless $current_instance.nil?
   end
 end
 Deplot.start
