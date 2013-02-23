@@ -29,8 +29,7 @@ please submit them to the issue tracker. Thanks!
 #
 
 class DeplotRenderer
-  attr_accessor :output_to, :layout
-  alias :copy_to= :output_to=
+  attr_accessor :layout
   
   def alert s
     puts " ---->#{s}".yellow
@@ -41,7 +40,6 @@ class DeplotRenderer
     @read = false
     @sources = files.collect { |file| {:filename => file} }
     @base_dir = base_dir
-    @output_to = ""
     @layout = ""
     @type = type
   end
@@ -51,16 +49,11 @@ class DeplotRenderer
     puts "Rendering..."
     @rendered = true
     @sources.each do |source|
-      # Render content
       renderer = Tilt[source[:filename]]
       unless renderer.nil?
         source[:content] = renderer.new { source[:content] }.render
       else
         puts "No Tilt renderer found for '#{source[:filename]}', falling back to echo.".yellow
-      end
-      # Render layout
-      unless @layout == ""
-        Tilt.new("assets/#{@layout}").render{ source[:content] }
       end
     end
   end
@@ -118,7 +111,10 @@ class DeplotRenderer
       the_module.send module_type, source, args
     end
   end
-  def output
+  def copy_to copy_dir
+    puts "copy_to: Media not yet supported.".red
+  end
+  def output_to output_dir
     unless @type == "documents"
       puts "Media not yet supported.".red
       return
@@ -126,8 +122,8 @@ class DeplotRenderer
     render if @rendered == false
     puts "Writing files..."
     @sources.each do |source|
-      @output_to += "/" unless @output_to =~ /\/$/
-      output_path = @output_to + source[:filename].gsub(/^#{@base_dir}/, '')
+      output_dir += "/" unless output_dir =~ /\/$/
+      output_path = output_dir + source[:filename].gsub(/^#{@base_dir}/, '')
       extname = File.extname(output_path)
       if extname == ""
         output_path += ".html"
@@ -136,10 +132,31 @@ class DeplotRenderer
       end
       FileUtils.mkdir_p(File.dirname(output_path))
       File.open(output_path, "w") do |file|
-        file.write source[:content]
+        if @layout == ""
+          file.write source[:content]
+        else
+          file.write Tilt.new("assets/#{@layout}").render{ source[:content] }
+        end
       end 
       puts "  Wrote to file '#{output_path}'."
     end
+  end
+  def collect_in output_file
+    unless @type == "documents"
+      puts "Media not yet supported.".red
+      return
+    end
+    puts "Writing file..."
+    sources_contents = @sources.collect{ |source| source[:content] }.join
+    FileUtils.mkdir_p(File.dirname(output_file))
+    File.open(output_file, "w") do |file|
+      if @layout == ""
+        file.write sources_contents
+      else
+        file.write Tilt.new("assets/#{@layout}").render{ sources_contents }
+      end
+    end  
+    puts "  Wrote to file '#{output_file}'."
   end
 end
 
@@ -173,7 +190,7 @@ def use module_name
 end
 
 # Assign methods
-["copy_to", "output_to", "layout"].each do |variable_name|
+["layout"].each do |variable_name|
   self.class.send :define_method, variable_name do |*args|
     unless $current_instance.nil?
       $current_instance.send("#{variable_name}=", *args)
@@ -182,7 +199,7 @@ end
 end
 
 # Basic methods
-["filter", "apply"].each do |method_name|
+["filter", "apply", "copy_to"].each do |method_name|
   self.class.send :define_method, method_name do |*args|
     unless $current_instance.nil?
       $current_instance.send(method_name, *args)
@@ -190,10 +207,23 @@ end
   end
 end
 
+# Output methods
+["output_to", "collect_in"].each do |method_name|
+  self.class.send :define_method, method_name do |path, &block|
+    unless $current_instance.nil?
+      backup = Marshal.load(Marshal.dump($current_instance))
+      block.call unless block.nil?
+      $current_instance.send(method_name, path)
+      $current_instance = backup
+    end
+  end
+end
+
 # DSL blocks
 ["media", "documents"].each do |type|
   self.class.send :define_method, "#{type}_in" do |dir, &block|
-    $current_instance.output unless $current_instance.nil?
+    # Maybe run $current_instance's output_to, define default behaviour?
+    # If so, remember to output after 'load "Deplotfile" too.
     base = "documents/#{dir}/"
     $current_instance = DeplotRenderer.new(type, Dir.glob(base + "*") - [".", "..", ".DS_STORE"], base)
     block.call
@@ -218,7 +248,6 @@ class Deplot < Thor
     end
     $LOAD_PATH.unshift(Dir.pwd)
     load "Deplotfile"
-    $current_instance.output unless $current_instance.nil?
   end
 end
 Deplot.start
