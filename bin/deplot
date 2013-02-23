@@ -42,6 +42,7 @@ class DeplotRenderer
     @base_dir = base_dir
     @layout = ""
     @type = type
+    puts "#{type.capitalize} renderer initialized.".green
   end
   def render
     return if @type == "media"
@@ -53,7 +54,7 @@ class DeplotRenderer
       unless renderer.nil?
         source[:content] = renderer.new { source[:content] }.render
       else
-        puts "No Tilt renderer found for '#{source[:filename]}', falling back to echo.".yellow
+        alert "No Tilt renderer found for '#{source[:filename]}', falling back to echo."
       end
     end
   end
@@ -111,41 +112,41 @@ class DeplotRenderer
       the_module.send module_type, source, args
     end
   end
-  def copy_to copy_dir
-    puts "copy_to: Media not yet supported.".red
-  end
   def output_to output_dir
-    unless @type == "documents"
-      puts "Media not yet supported.".red
-      return
-    end
-    render if @rendered == false
-    puts "Writing files..."
-    @sources.each do |source|
-      output_dir += "/" unless output_dir =~ /\/$/
-      output_path = output_dir + source[:filename].gsub(/^#{@base_dir}/, '')
-      extname = File.extname(output_path)
-      if extname == ""
-        output_path += ".html"
-      else
-        output_path.gsub! /#{extname}$/, ".html"
+    if @type == "media"
+      puts "Copying files..."
+      FileUtils.mkdir_p(output_dir)
+      @sources.each do |source|
+         FileUtils.cp(source[:filename], output_dir)
+         puts "  Copied '#{source[:filename]}'."
       end
-      FileUtils.mkdir_p(File.dirname(output_path))
-      File.open(output_path, "w") do |file|
-        if @layout == ""
-          file.write source[:content]
+    elsif @type == "documents"
+      render if @rendered == false
+      puts "Writing files..."
+      @sources.each do |source|
+        output_dir += "/" unless output_dir =~ /\/$/
+        output_path = output_dir + source[:filename].gsub(/^#{@base_dir}/, '')
+        extname = File.extname(output_path)
+        if extname == ""
+          output_path += ".html"
         else
-          file.write Tilt.new("assets/#{@layout}").render{ source[:content] }
+          output_path.gsub! /#{extname}$/, ".html"
         end
-      end 
-      puts "  Wrote to file '#{output_path}'."
+        FileUtils.mkdir_p(File.dirname(output_path))
+        File.open(output_path, "w") do |file|
+          if @layout == ""
+            file.write source[:content]
+          else
+            file.write Tilt.new("assets/#{@layout}").render{ source[:content] }
+          end
+        end 
+        puts "  Wrote to file '#{output_path}'."
+      end
     end
   end
+  alias :copy_to :output_to
   def collect_in output_file
-    unless @type == "documents"
-      puts "Media not yet supported.".red
-      return
-    end
+    raise "Only documents can be collected!" unless @type == "documents"
     puts "Writing file..."
     sources_contents = @sources.collect{ |source| source[:content] }.join
     FileUtils.mkdir_p(File.dirname(output_file))
@@ -224,7 +225,7 @@ end
   self.class.send :define_method, "#{type}_in" do |dir, &block|
     # Maybe run $current_instance's output_to, define default behaviour?
     # If so, remember to output after 'load "Deplotfile" too.
-    base = "documents/#{dir}/"
+    base = "#{type}/#{dir}/"
     $current_instance = DeplotRenderer.new(type, Dir.glob(base + "*") - [".", "..", ".DS_STORE"], base)
     block.call
   end
