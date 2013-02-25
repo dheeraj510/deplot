@@ -13,9 +13,11 @@ This file, and Deplot itself, consist/s of three major parts:
 
 1. The 'DeplotRenderer' class
   contains all the logic of deplot and the rendering process
-2. The DSL methods
-  is the 'interface' to deplot, accessible via the Deplotfile
-3. The 'Deplot' CLI class
+2. Base classes for modules
+  that can be used to build modules for custom behaviour
+3. The DSL methods
+  are the 'interface' to deplot, accessible via the Deplotfile
+4. The 'Deplot' CLI class
   provides all command line methods to Thor
 
 This seemed the least complex way to do it; if you can think
@@ -25,9 +27,10 @@ please submit them to the issue tracker. Thanks!
 =end
 
 #
-# DeplotRenderer, the class with the render logic
+# DeplotRenderer and subclasses, containing the render logic
 #
 
+# Base class
 class DeplotRenderer
   attr_accessor :layout
   
@@ -43,6 +46,7 @@ class DeplotRenderer
     @layout = ""
   end
   
+  # Filter out sources based on file name
   def filter options
     if options.has_key? :only or options.has_key? :exclude
       filter_type = (options.has_key? :only) ? :only : :exclude
@@ -61,6 +65,7 @@ class DeplotRenderer
     end
   end
   
+  # Apply a user module (located in modules/)
   def apply module_name, *args
     begin
       module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join()
@@ -91,6 +96,7 @@ class DeplotRenderer
   end
 end
 
+# Media renderer
 class DeplotMediaRenderer < DeplotRenderer
   def initialize base_dir
     puts "Media renderer initialized.".green
@@ -107,6 +113,7 @@ class DeplotMediaRenderer < DeplotRenderer
   end
 end
 
+# Document renderer
 class DeplotDocumentRenderer < DeplotRenderer
   def initialize base_dir
     puts "Documents renderer initialized.".green
@@ -197,7 +204,9 @@ end
 
 $current_instance = nil
 
-# Module base classes
+#
+# Base classes for user modules
+#
 
 class DeplotFilter
   def filter sources, arguments
