@@ -136,6 +136,19 @@ class DeplotDocumentRenderer < DeplotRenderer
     end
   end
   
+  def output
+    render if @rendered == false
+    output = []
+    @sources.each do |source|
+      unless @layout == ""
+        output.push Tilt.new("assets/#{@layout}").render{ source[:content] }
+      else
+        output.push source[:content]
+      end
+    end
+    output
+  end
+  
   def output_to output_dir
     render if @rendered == false
     puts "Writing files..."
@@ -160,16 +173,23 @@ class DeplotDocumentRenderer < DeplotRenderer
     end
   end
   
+  def collect
+    render if @rendered == false
+    puts "Collecting documents..."
+    content = @sources.collect{ |source| source[:content] }.join
+    unless @layout == ""
+      return Tilt.new("assets/#{@layout}").render{ content }
+    else
+      return content
+    end
+  end
+  
   def collect_in output_file
     puts "Writing file..."
-    sources_contents = @sources.collect{ |source| source[:content] }.join
+    sources_contents = collect
     FileUtils.mkdir_p(File.dirname(output_file))
     File.open(output_file, "w") do |file|
-      if @layout == ""
-        file.write sources_contents
-      else
-        file.write Tilt.new("assets/#{@layout}").render{ sources_contents }
-      end
+      file.write sources_contents
     end  
     puts "  Wrote to file '#{output_file}'."
   end
@@ -234,7 +254,7 @@ end
   end
 end
 
-# DSL blocks
+# Render blocks
 ["media", "documents"].each do |type|
   self.class.send :define_method, "#{type}_in" do |dir, &block|
     # Maybe run $current_instance's output_to, define default behaviour?
@@ -246,6 +266,21 @@ end
       $current_instance = DeplotDocumentRenderer.new(base)
     end
     block.call
+  end
+end
+
+# Inline document render blocks
+["collect", "output"].each do |method|
+  self.class.send :define_method, "#{method}_documents_in" do |dir, &block|
+    # Maybe run $current_instance's output_to, define default behaviour?
+    # If so, remember to output after 'load "Deplotfile" too.
+    base = "documents/#{dir}/"
+    backup = Marshal.load(Marshal.dump($current_instance))
+    $current_instance = DeplotDocumentRenderer.new(base)
+    block.call
+    output = $current_instance.send method
+    $current_instance = backup
+    return output
   end
 end
 
