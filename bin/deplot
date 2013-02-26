@@ -33,6 +33,7 @@ please submit them to the issue tracker. Thanks!
 # Base class
 class DeplotRenderer
   attr_accessor :layout
+  attr_accessor :context
   
   def alert s
     puts " ---->#{s}".yellow
@@ -136,14 +137,16 @@ class DeplotDocumentRenderer < DeplotRenderer
     @sources.each do |source|
       renderer = Tilt[source[:filename]]
       unless renderer.nil?
-        source[:content] = renderer.new { source[:content] }.render
+        source[:content] = renderer.new do
+          source[:content]
+        end.render context
       else
         alert "No Tilt renderer found for '#{source[:filename]}', falling back to echo."
       end
     end
   end
   
-  def output context
+  def output
     render if @rendered == false
     output = []
     @sources.each do |source|
@@ -158,7 +161,7 @@ class DeplotDocumentRenderer < DeplotRenderer
     output
   end
   
-  def output_to output_dir, context
+  def output_to output_dir
     render if @rendered == false
     puts "Writing files..."
     @sources.each do |source|
@@ -184,7 +187,7 @@ class DeplotDocumentRenderer < DeplotRenderer
     end
   end
   
-  def collect context
+  def collect
     render if @rendered == false
     puts "Collecting documents..."
     content = @sources.collect{ |source| source[:content] }.join
@@ -197,9 +200,9 @@ class DeplotDocumentRenderer < DeplotRenderer
     end
   end
   
-  def collect_in output_file, context
+  def collect_in output_file
     puts "Writing file..."
-    sources_contents = collect context
+    sources_contents = collect
     FileUtils.mkdir_p(File.dirname(output_file))
     File.open(output_file, "w") do |file|
       file.write sources_contents
@@ -252,6 +255,7 @@ end
 ["filter", "apply", "copy_to"].each do |method_name|
   self.class.send :define_method, method_name do |*args|
     unless $current_instance.nil?
+      $current_instance.context = binding.eval("self")
       $current_instance.send(method_name, *args)
     end
   end
@@ -263,7 +267,8 @@ end
     unless $current_instance.nil?
       backup = Marshal.load(Marshal.dump($current_instance))
       block.call unless block.nil?
-      $current_instance.send(method_name, path, (block.nil? ? binding : block.binding).eval("self"))
+      $current_instance.context = (block.nil? ? binding : block.binding).eval("self")
+      $current_instance.send(method_name, path)
       $current_instance = backup
     end
   end
@@ -290,10 +295,12 @@ end
     # Maybe run $current_instance's output_to, define default behaviour?
     # If so, remember to output after 'load "Deplotfile" too.
     base = "documents/#{dir}/"
+    $current_instance.context = nil
     backup = Marshal.load(Marshal.dump($current_instance))
     $current_instance = DeplotDocumentRenderer.new(base)
     block.call
-    output = $current_instance.send method, (block.nil? ? binding : block.binding).eval("self")
+    $current_instance.context = (block.nil? ? binding : block.binding).eval("self")
+    output = $current_instance.send method
     $current_instance = backup
     return output
   end
