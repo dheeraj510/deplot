@@ -298,7 +298,7 @@ end
     $current_instance.context = nil
     backup = Marshal.load(Marshal.dump($current_instance))
     $current_instance = DeplotDocumentRenderer.new(base)
-    block.call
+    block.call unless block.nil?
     $current_instance.context = (block.nil? ? binding : block.binding).eval("self")
     output = $current_instance.send method
     $current_instance = backup
