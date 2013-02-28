@@ -65,36 +65,6 @@ class DeplotRenderer
       alert "filter: No valid argument/s found."
     end
   end
-  
-  # Apply a user module (located in modules/)
-  def apply module_name, *args
-    begin
-      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join()
-      the_module = Kernel.const_get(module_const).new
-    rescue
-      raise "'#{module_name}' not defined! Maybe not 'use'd?"
-    end
-    puts "Applying '#{module_name}'..."
-    # Prepare module
-    module_type = nil
-    if the_module.is_a? DeplotPreprocessor
-      raise "Cannot preprocess if already rendered! (module '#{module_name}')" if @rendered == true
-      read if @read == false
-      module_type = :preprocess
-    elsif the_module.is_a? DeplotProcessor
-      read if @read == false # No preprocessors
-      render if @rendered == false
-      module_type = :process
-    elsif the_module.is_a? DeplotFilter  
-      module_type = :filter
-    else
-      raise "'#{module_name}' is not a deplot module!"
-    end  
-    # Apply to each source
-    @sources.each do |source|
-      the_module.send module_type, source, args
-    end
-  end
 end
 
 # Media renderer
@@ -110,6 +80,22 @@ class DeplotMediaRenderer < DeplotRenderer
     @sources.each do |source|
        FileUtils.cp(source[:filename], output_dir)
        puts "  Copied '#{source[:filename]}'."
+    end
+  end
+  
+  def apply module_name, *args
+    begin
+      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join()
+      the_module = Kernel.const_get(module_const).new
+    rescue
+      raise "'#{module_name}' not defined! Maybe not 'use'd?"
+    end
+    if the_module.is_a? DeplotFilter
+      @sources.each do |source|
+        the_module.filter source, args
+      end
+    else
+      raise "Only filter modules can be applied within media renderers! (#{module_name})"
     end
   end
 end
@@ -208,6 +194,36 @@ class DeplotDocumentRenderer < DeplotRenderer
       file.write sources_contents
     end  
     puts "  Wrote to file '#{output_file}'."
+  end
+  
+  # Apply a user module (located in modules/)
+  def apply module_name, *args
+    begin
+      module_const = module_name.to_s.split("_").collect { |s| s.capitalize }.join()
+      the_module = Kernel.const_get(module_const).new
+    rescue
+      raise "'#{module_name}' not defined! Maybe not 'use'd?"
+    end
+    puts "Applying '#{module_name}'..."
+    # Prepare module
+    module_type = nil
+    if the_module.is_a? DeplotPreprocessor
+      raise "Cannot preprocess if already rendered! (module '#{module_name}')" if @rendered == true
+      read if @read == false
+      module_type = :preprocess
+    elsif the_module.is_a? DeplotProcessor
+      read if @read == false # No preprocessors
+      render if @rendered == false
+      module_type = :process
+    elsif the_module.is_a? DeplotFilter  
+      module_type = :filter
+    else
+      raise "'#{module_name}' is not a deplot module!"
+    end  
+    # Apply to each source
+    @sources.each do |source|
+      the_module.send module_type, source, args
+    end
   end
 end
 
