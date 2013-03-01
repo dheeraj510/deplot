@@ -283,6 +283,9 @@ end
     unless $current_instance.nil?
       backup = Marshal.load(Marshal.dump($current_instance))
       block.call unless block.nil?
+      @output_path = path
+      @depth = path.count("/")
+      @depth += 1 if File.directory?(path) && path[-1] != "/"
       $current_instance.context = (block.nil? ? binding : block.binding).eval("self")
       $current_instance.send(method_name, path)
       $current_instance = backup
