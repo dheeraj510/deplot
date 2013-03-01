@@ -157,6 +157,8 @@ There are three types of modules: the filter, the preprocessor, the processor mo
 * Automatic rebuilding using [guard][guard]
 * Media resizing and conversion
 * Partials (for more modular layouts)
+* Path to current file needs to be accessible (for navigations, assets etc.)
+* Ability to sort source files
 
 Please submit feature requests and bugfixes in the issue tracker.
 
