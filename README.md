@@ -165,5 +165,5 @@ Please submit feature requests and bugfixes in the issue tracker.
 
 See LICENSE file.
 
-[tilt]: https://github.com/rtomayko/ti
-[guard]: https://github.com/guard/guardlt
+[tilt]: https://github.com/rtomayko/tilt
+[guard]: https://github.com/guard/guard
