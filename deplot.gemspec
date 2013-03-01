@@ -1,9 +1,12 @@
 Gem::Specification.new do |s|
   s.name        = 'deplot'
   s.version     = '0.1.0'
-  s.date        = '2012-04-29'
-  s.description = "A ruby static web site generator"
-  s.summary     = s.description
+  s.date        = '2013-03-01'
+  s.summary     = "A lightweight and very extensible static web site generator"
+  s.description = %{
+Deplot intends to simplify the process of creating and maintaining a static
+web site and allows for modifications of every part of the building process.
+}.delete "\n"
   s.authors     = ["Cyril Nusko"]
   s.email       = 'gitcdn@gmail.com'
   s.files       = ["bin/deplot"]
