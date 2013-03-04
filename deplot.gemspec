@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'deplot'
-  s.version     = '0.1.0'
+  s.version     = '0.1.1'
   s.date        = '2013-03-01'
   s.summary     = "A lightweight and very extensible static web site generator"
   s.description = %{
