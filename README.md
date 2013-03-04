@@ -112,6 +112,15 @@ filter :only => [/.*.markdown$/]
 filter :exclude => [/.*.erb$/]
 ```
 
+#### sort
+
+With `sort`, you can specify wheter you want to sort the sources *ascending* (default) or *descending* based on the file name:
+
+```
+sort :descending
+```
+
+
 #### apply
 
 The mightiest of all commands, `apply`, can be used to execute custom code (so-called *modules*) in the context of the current set of sources. Modules are searched for in the `modules/` folder of your project and need to be included in the Deplotfle (`use :teaser` for `teaser.rb`). For our basic blog, we may want to shorten the text displayed on the front page and display a link to the post page:
@@ -171,7 +180,7 @@ There are three types of modules: the filter, the preprocessor, the processor mo
 * Automatic rebuilding using [guard][guard]
 * Media resizing and conversion
 * Partials (for more modular layouts)
-* Ability to sort source files
+* Expand sort functionality
 
 Please submit feature requests and bugfixes in the issue tracker.
 

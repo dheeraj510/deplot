@@ -45,6 +45,23 @@ class DeplotRenderer
     @sources = (Dir.glob(base_dir + "*") - [".", "..", ".DS_STORE"]).collect { |file| {:filename => file} }
     @base_dir = base_dir
     @layout = ""
+    @sort_options = {
+      :reverse => false
+    }
+  end
+  
+  # Sort sources based on file name
+  def sort *args
+    #args.uniq!
+    @sort_options[:reverse] = false if args.include? :ascending
+    @sort_options[:reverse] = true if args.include? :descending
+  end
+  
+  # Prerender: apply sort options
+  def prerender
+    puts @sort_options[:reverse]
+    puts @sources
+    @sources.reverse! if @sort_options[:reverse]
   end
   
   # Filter out sources based on file name
@@ -75,6 +92,7 @@ class DeplotMediaRenderer < DeplotRenderer
   end
   
   def copy_to output_dir
+    prerender
     puts "Copying files..."
     FileUtils.mkdir_p(output_dir)
     @sources.each do |source|
@@ -120,6 +138,7 @@ class DeplotDocumentRenderer < DeplotRenderer
   end
   
   def render
+    prerender
     read if @read == false
     puts "Rendering..."
     @rendered = true
@@ -280,7 +299,7 @@ self.class.send :define_method, "render" do |&block|
 end
 
 # Basic methods
-["filter", "apply", "copy_to"].each do |method_name|
+["filter", "apply", "copy_to", "sort"].each do |method_name|
   self.class.send :define_method, method_name do |*args|
     unless $current_instance.nil?
       $current_instance.context = binding.eval("self")
