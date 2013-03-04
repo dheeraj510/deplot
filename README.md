@@ -89,6 +89,20 @@ end
 
 `collect_in` concatenates all the rendered files and writes them to a single file. Like `output_to`, it can be called with a block (the `apply` example makes use of this feature).
 
+#### render (documents only)
+
+`render` expects a block. This block is called when rendering (the only argument is the array of sources) and *replaces* the default renderer. You can use this method to define your own rendering process. The following code parses each source as YAML and renders a template using the YAML data:
+
+```
+render do |sources|
+  sources.each do |source|
+    metadata = YAML::load(source[:content])
+    post_renderer = Tilt.new("assets/post.erb")
+    source[:content] = post_renderer.render(nil, metadata)
+  end
+end
+```
+
 #### filter
 
 The `filter` command is available for both media and document renderers and is used to filter out files from the specified sources. It can be used in two ways:
@@ -151,7 +165,7 @@ There are three types of modules: the filter, the preprocessor, the processor mo
 
 ## Planned features
 
-* Ability to use custom renderer code (block and module)
+* Ability to use custom renderer modules
 * Non-media asset processing (compiling, compressing, concatenating) for files written in LESS, SASS, CoffeScript etc. 
 * Filter: keep or discard file when one or more, but not necessarily all conditions are met (considered bug)
 * Automatic rebuilding using [guard][guard]

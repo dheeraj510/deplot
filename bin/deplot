@@ -102,7 +102,10 @@ end
 
 # Document renderer
 class DeplotDocumentRenderer < DeplotRenderer
+  attr_accessor :renderer
+  
   def initialize base_dir
+    @renderer = nil
     puts "Documents renderer initialized.".green
     super
   end
@@ -120,15 +123,19 @@ class DeplotDocumentRenderer < DeplotRenderer
     read if @read == false
     puts "Rendering..."
     @rendered = true
-    @sources.each do |source|
-      renderer = Tilt[source[:filename]]
-      unless renderer.nil?
-        source[:content] = renderer.new do
-          source[:content]
-        end.render context
-      else
-        alert "No Tilt renderer found for '#{source[:filename]}', falling back to echo."
+    if @renderer.nil?
+      @sources.each do |source|
+        renderer = Tilt[source[:filename]]
+        unless renderer.nil?
+          source[:content] = renderer.new do
+            source[:content]
+          end.render context
+        else
+          alert "No Tilt renderer found for '#{source[:filename]}', falling back to echo."
+        end
       end
+    else
+      @renderer.call(@sources)
     end
   end
   
@@ -264,6 +271,11 @@ end
     unless $current_instance.nil?
       $current_instance.send("#{variable_name}=", *args)
     end
+  end
+end
+self.class.send :define_method, "render" do |&block|
+  unless $current_instance.nil?
+    $current_instance.send("renderer=", block)
   end
 end
 
