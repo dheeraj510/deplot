@@ -36,7 +36,7 @@ The core of a deplot project, the `Deplotfile`, uses the mentioned DSL that make
 
 For example, if you were to set up a blog with one page per blog post and a collection of posts on the front page, you could write this simple code:
 
-```
+```ruby
 documents_in "posts" do
 	collect_in "index.html"
 	output_to "posts"
@@ -59,7 +59,7 @@ Deplot uses [tilt][tilt] to render all content and layout files and is therefore
 
 The top-level **render blocks**  are built using the two methods `documents_in` (as seen in the previous example) and `media_in`. They are called with two arguments: the path to the folder containing the source files (relative to `documents/` and `media/`, respectively) and a block that contains all the instructions for rendering the sources. At the moment, `media_in` is currently only able to filter and copy files:
 
-```
+```ruby
 media_in "images" do
 	filter :only => [/.*.png$/]
 	copy_to "img"
@@ -70,7 +70,7 @@ end
 
 There are situations in which you may want to render multiple sets of files to different parts of your website (a newsticker in the sidebar, for example). The two commands `output_documents_in` and `collect_documents_in` will take care of this by returning the rendered content as array and string, respectively. In the following example, both layout and content files could then make use of the variable "@news":
 
-```
+```ruby
 documents_in "pages" do
 	@news = collect_documents_in "news"
 	output_to "/"
@@ -93,7 +93,7 @@ end
 
 `render` expects a block. This block is called when rendering (the only argument is the array of sources) and *replaces* the default renderer. You can use this method to define your own rendering process. The following code parses each source as YAML and renders a template using the YAML data:
 
-```
+```ruby
 render do |sources|
   sources.each do |source|
     metadata = YAML::load(source[:content])
@@ -107,16 +107,16 @@ end
 
 The `filter` command is available for both media and document renderers and is used to filter out files from the specified sources. It can be used in two ways:
 
-```
+```ruby
 filter :only => [/.*.markdown$/]
 filter :exclude => [/.*.erb$/]
 ```
 
 #### sort
 
-With `sort`, you can specify wheter you want to sort the sources *ascending* (default) or *descending* based on the file name:
+With `sort`, you can specify whether you want to sort the sources *ascending* (default) or *descending* based on the file name:
 
-```
+```ruby
 sort :descending
 ```
 
@@ -125,7 +125,7 @@ sort :descending
 
 The mightiest of all commands, `apply`, can be used to execute custom code (so-called *modules*) in the context of the current set of sources. Modules are searched for in the `modules/` folder of your project and need to be included in the Deplotfle (`use :teaser` for `teaser.rb`). For our basic blog, we may want to shorten the text displayed on the front page and display a link to the post page:
 
-```
+```ruby
 class Teaser < DeplotPreprocessor
   def preprocess source, arguments
     link = "posts/" + File.basename(source[:filename]).gsub(/\.md/, ".html")
@@ -136,7 +136,7 @@ end
 
 Now we can include this preprocessor to be used for `index.html` as follows:
 
-```
+```ruby
 use :teaser
 
 documents_in "posts" do
@@ -157,7 +157,7 @@ There are three types of modules: the filter, the preprocessor, the processor mo
 
 `layout` is used to specify a template file which is rendered just before the files is written to disk. This file can be used to link to css and javascript files or display content that stays the same over multiple pages:
 
-```
+```html
 <html>
 <head>
 	<link rel="stylesheet" href="style.css" />
