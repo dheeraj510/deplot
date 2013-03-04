@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 require 'thor'
 require 'fileutils'
@@ -52,15 +52,13 @@ class DeplotRenderer
   
   # Sort sources based on file name
   def sort *args
-    #args.uniq!
+    args.uniq!
     @sort_options[:reverse] = false if args.include? :ascending
     @sort_options[:reverse] = true if args.include? :descending
   end
   
   # Prerender: apply sort options
   def prerender
-    puts @sort_options[:reverse]
-    puts @sources
     @sources.reverse! if @sort_options[:reverse]
   end
   
