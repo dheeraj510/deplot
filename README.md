@@ -176,7 +176,6 @@ There are three types of modules: the filter, the preprocessor, the processor mo
 
 * Ability to use custom renderer modules
 * Non-media asset processing (compiling, compressing, concatenating) for files written in LESS, SASS, CoffeScript etc. 
-* Filter: keep or discard file when one or more, but not necessarily all conditions are met (considered bug)
 * Automatic rebuilding using [guard][guard]
 * Media resizing and conversion
 * Partials (for more modular layouts)

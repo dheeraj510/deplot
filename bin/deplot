@@ -66,15 +66,19 @@ class DeplotRenderer
   def filter options
     if options.has_key? :only or options.has_key? :exclude
       filter_type = (options.has_key? :only) ? :only : :exclude
-      options[filter_type].each do |filter|
-        @sources.send (filter_type == :only ? :keep_if : :delete_if) do |source|
+      @sources.send (filter_type == :only ? :keep_if : :delete_if) do |source|
+        decision = false
+        options[filter_type].each do |filter|
           file = source[:filename]
           if filter.is_a? Regexp
-            filter =~ file
+            decision ||= filter =~ file
+            break if decision
           else
-            filter == file || @base_dir + filter == file
+            decision ||= (filter == file || @base_dir + filter == file)
+            break if decision
           end
         end
+        decision
       end
     else
       alert "filter: No valid argument/s found."
